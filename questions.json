@@ -1,0 +1,45 @@
+[
+  {
+    "id": 1,
+    "label": "Question 1",
+    "type": "multiple_choice",
+    "points": 10,
+    "options": ["A", "B", "C", "D"]
+  },
+  {
+    "id": 2,
+    "label": "Question 2",
+    "type": "true_false",
+    "points": 10,
+    "options": ["True", "False"]
+  },
+  {
+    "id": 3,
+    "label": "Question 3",
+    "type": "multiple_choice",
+    "points": 20,
+    "options": ["A", "B", "C", "D"]
+  },
+  {
+    "id": 4,
+    "label": "Question 4",
+    "type": "short_answer",
+    "points": 20,
+    "options": [],
+    "correctAnswer": "Neil Armstrong"
+  },
+  {
+    "id": 5,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": ["Randy", "Kevin", "Steven"]
+  },
+  {
+    "id": 6,
+    "label": "Question 6",
+    "type": "multiple_choice",
+    "points": 40,
+    "options": ["A", "B", "C", "D"]
+  }
+]
