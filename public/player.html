@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+<title>Vacation Trivia Night - Player</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- JOIN SCREEN -->
+<div id="screen-join" class="screen active">
+  <div class="card">
+    <h1>🎉 Vacation Trivia Night</h1>
+    <h2>Masukkan Room Code &amp; Nama kamu</h2>
+    <div class="error-msg" id="join-error"></div>
+    <input type="text" id="input-room" placeholder="Room Code (mis. 8429)" maxlength="4" inputmode="numeric" />
+    <input type="text" id="input-name" placeholder="Nama kamu" maxlength="20" />
+    <button class="btn-primary" id="btn-join">JOIN</button>
+  </div>
+</div>
+
+<!-- WAITING SCREEN -->
+<div id="screen-waiting" class="screen">
+  <div class="card">
+    <h1>Hai, <span id="waiting-name"></span> 👋</h1>
+    <p class="status-msg pulse">Waiting Host...</p>
+    <p class="hint">Room <span id="waiting-room"></span></p>
+  </div>
+</div>
+
+<!-- QUESTION SCREEN -->
+<div id="screen-question" class="screen">
+  <div class="card">
+    <div class="q-meta">Question <span id="q-number"></span> / <span id="q-total"></span><span class="points-tag" id="q-points"></span></div>
+    <h1>Pilih jawabanmu</h1>
+    <p class="hint">Lihat soal di layar TV / laptop host</p>
+    <div id="q-mc-wrap" class="answer-grid" style="display:none;"></div>
+    <div id="q-text-wrap" style="display:none;">
+      <input type="text" id="q-text-input" placeholder="Ketik jawabanmu..." maxlength="80" />
+      <button class="btn-primary" id="btn-submit-text">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMITTED SCREEN -->
+<div id="screen-submitted" class="screen">
+  <div class="card">
+    <h1>Answer Submitted ✅</h1>
+    <p class="status-msg pulse">Waiting...</p>
+  </div>
+</div>
+
+<!-- REVEAL SCREEN -->
+<div id="screen-reveal" class="screen">
+  <div class="card">
+    <div id="reveal-banner" class="result-banner neutral"></div>
+    <p class="hint">Skor kamu sekarang</p>
+    <div class="room-code" id="reveal-score" style="font-size:2.2rem;"></div>
+    <h2 style="margin-top:20px;">Leaderboard</h2>
+    <div id="reveal-leaderboard"></div>
+  </div>
+</div>
+
+<!-- FINAL SCREEN -->
+<div id="screen-final" class="screen">
+  <div class="card">
+    <div class="trophy">🏆</div>
+    <h1>Champion</h1>
+    <div class="champion" id="final-champion-name"></div>
+    <p class="hint" id="final-champion-score"></p>
+    <h2 style="margin-top:20px;">Leaderboard Akhir</h2>
+    <div id="final-leaderboard"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

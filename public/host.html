@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vacation Trivia Night - Host Dashboard</title>
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  body { align-items: flex-start; }
+  .screen { max-width: 640px; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen active">
+  <div class="card">
+    <h1>🎛️ Host Dashboard</h1>
+    <h2>Vacation Trivia Night</h2>
+    <button class="btn-primary" id="btn-create-room">Buat Room Baru</button>
+    <p class="hint">Buka halaman ini di laptop kamu sebagai host. Pastikan HP peserta terhubung ke Wi-Fi yang sama.</p>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="screen-lobby" class="screen">
+  <div class="card">
+    <h1>Room Code</h1>
+    <div class="room-code" id="lobby-room-code"></div>
+    <div class="qr-wrap"><img id="lobby-qr" src="" alt="QR Code" /></div>
+    <div class="join-url" id="lobby-join-url"></div>
+    <h2 id="lobby-player-count">0 peserta bergabung</h2>
+    <ul class="player-list" id="lobby-player-list"></ul>
+    <button class="btn-primary" id="btn-start-game" disabled>Start Game</button>
+    <p class="hint">Tombol aktif setelah minimal 1 peserta join.</p>
+  </div>
+</div>
+
+<!-- GAME (question live) -->
+<div id="screen-game" class="screen">
+  <div class="card">
+    <div class="q-meta">Question <span id="game-q-number"></span> / <span id="game-q-total"></span><span class="points-tag" id="game-q-points"></span></div>
+    <h1 id="game-q-type-label"></h1>
+    <h2 id="game-submit-count">0 / 0 sudah submit</h2>
+    <ul class="player-list" id="game-player-list"></ul>
+
+    <div id="mc-correct-wrap" style="display:none;">
+      <p class="hint">Pilih jawaban yang benar lalu klik Reveal:</p>
+      <div class="answer-grid" id="mc-correct-buttons"></div>
+    </div>
+
+    <div id="short-judge-wrap" style="display:none;">
+      <p class="hint">Tandai jawaban tiap peserta benar / salah:</p>
+      <div class="short-answer-list" id="short-answer-list"></div>
+    </div>
+
+    <div id="survey-wrap" style="display:none;">
+      <p class="hint">Survey (tanpa jawaban benar). Setiap peserta yang vote-nya sama<br>
+      dengan peserta lain akan dapat poin per kecocokan.</p>
+    </div>
+
+    <button class="btn-secondary" id="btn-lock-time">Waktu Habis</button>
+    <button class="btn-good" id="btn-reveal">Reveal</button>
+  </div>
+</div>
+
+<!-- REVEALED -->
+<div id="screen-revealed" class="screen">
+  <div class="card">
+    <h1>✅ Jawaban Ditampilkan</h1>
+    <h2>Leaderboard Sementara</h2>
+    <div id="revealed-leaderboard"></div>
+    <button class="btn-primary" id="btn-next-question">Next Question</button>
+    <button class="btn-danger" id="btn-end-game">End Game</button>
+  </div>
+</div>
+
+<!-- ENDED -->
+<div id="screen-ended" class="screen">
+  <div class="card">
+    <div class="trophy">🏆</div>
+    <h1>Champion</h1>
+    <div class="champion" id="ended-champion-name"></div>
+    <p class="hint" id="ended-champion-score"></p>
+    <h2 style="margin-top:20px;">Leaderboard Akhir</h2>
+    <div id="ended-leaderboard"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="host.js"></script>
+</body>
+</html>
