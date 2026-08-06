@@ -20,6 +20,19 @@
   </div>
 </div>
 
+<!-- WAGER: PLACE BET -->
+<div id="screen-wager-bet" class="screen">
+  <div class="card">
+    <h1>🎲 Ronde Taruhan Akhir!</h1>
+    <p class="hint">Skor kamu sekarang</p>
+    <div class="room-code" id="wager-current-score" style="font-size:2.2rem;"></div>
+    <p class="hint">Berapa poin mau kamu pertaruhkan? Kalau BENAR nanti dapat 2x lipat, kalau SALAH poin ini hilang.</p>
+    <input type="text" id="wager-input" placeholder="Jumlah taruhan" inputmode="numeric" />
+    <div class="error-msg" id="wager-error"></div>
+    <button class="btn-primary" id="btn-submit-wager">Pasang Taruhan</button>
+  </div>
+</div>
+
 <!-- WAITING SCREEN -->
 <div id="screen-waiting" class="screen">
   <div class="card">
@@ -33,6 +46,7 @@
 <div id="screen-question" class="screen">
   <div class="card">
     <div class="q-meta">Question <span id="q-number"></span> / <span id="q-total"></span><span class="points-tag" id="q-points"></span></div>
+    <div id="q-wager-note" class="hint" style="display:none;"></div>
     <h1>Pilih jawabanmu</h1>
     <p class="hint">Lihat soal di layar TV / laptop host</p>
     <div id="q-mc-wrap" class="answer-grid" style="display:none;"></div>

@@ -4,6 +4,8 @@ const screens = {
   setup: document.getElementById('screen-setup'),
   lobby: document.getElementById('screen-lobby'),
   game: document.getElementById('screen-game'),
+  wagerCollect: document.getElementById('screen-wager-collect'),
+  wagerQuestion: document.getElementById('screen-wager-question'),
   revealed: document.getElementById('screen-revealed'),
   ended: document.getElementById('screen-ended'),
 };
@@ -142,6 +144,85 @@ function renderShortAnswerList(shortAnswers) {
     .join('');
   wrap.innerHTML = keyLine + rows;
 }
+
+document.getElementById('btn-proceed-wager').addEventListener('click', () => {
+  socket.emit('host:proceed-to-wager-question');
+});
+
+socket.on('host:wager-collect-start', (data) => {
+  currentQuestion = { type: 'wager' };
+  document.getElementById('wager-collect-count').textContent =
+    `${data.submittedCount} / ${data.totalPlayers} sudah pasang taruhan`;
+  renderWagerCollectList(data.players);
+  showScreen('wagerCollect');
+});
+
+socket.on('host:wager-collect-update', (data) => {
+  document.getElementById('wager-collect-count').textContent =
+    `${data.submittedCount} / ${data.totalPlayers} sudah pasang taruhan`;
+  renderWagerCollectList(data.players);
+});
+
+function renderWagerCollectList(players) {
+  const list = document.getElementById('wager-collect-list');
+  if (!list) return;
+  list.innerHTML = '';
+  players.forEach((p) => {
+    const li = document.createElement('li');
+    // `submitted` here reflects whether an answer was set, which is not used
+    // during the wager phase - we rely on the count text above instead, and
+    // just list names so the host can see who's at the table.
+    li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="badge">skor: ${p.score}</span>`;
+    list.appendChild(li);
+  });
+}
+
+let wagerPlayersState = [];
+
+socket.on('host:wager-question-live', (data) => {
+  document.getElementById('wager-submit-count').textContent =
+    `${data.submittedCount} / ${data.totalPlayers} sudah menjawab`;
+  wagerPlayersState = data.players;
+  renderWagerJudgeList(wagerPlayersState);
+  showScreen('wagerQuestion');
+});
+
+socket.on('host:wager-question-update', (data) => {
+  document.getElementById('wager-submit-count').textContent =
+    `${data.submittedCount} / ${data.totalPlayers} sudah menjawab`;
+  // Preserve which checkboxes were already ticked before re-rendering.
+  const checkedIds = new Set(
+    Array.from(document.querySelectorAll('#wager-judge-list input[type=checkbox]:checked')).map((el) => el.dataset.id)
+  );
+  wagerPlayersState = data.players;
+  renderWagerJudgeList(wagerPlayersState, checkedIds);
+});
+
+function renderWagerJudgeList(players, checkedIds) {
+  const wrap = document.getElementById('wager-judge-list');
+  wrap.innerHTML = '';
+  players.forEach((p) => {
+    const row = document.createElement('div');
+    row.className = 'short-answer-row';
+    const answerLabel = p.hasAnswered ? `"${escapeHtml(p.answerText)}"` : '<em>belum menjawab</em>';
+    const isChecked = checkedIds && checkedIds.has(p.id);
+    row.innerHTML = `
+      <span class="txt">${escapeHtml(p.name)} (taruhan: ${p.wager}) — ${answerLabel}</span>
+      <label style="display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''} />
+        Menang
+      </label>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+document.getElementById('btn-finalize-wager').addEventListener('click', () => {
+  const winnerIds = Array.from(document.querySelectorAll('#wager-judge-list input[type=checkbox]:checked')).map(
+    (el) => el.dataset.id
+  );
+  socket.emit('host:finalize-wager', { winnerIds });
+});
 
 socket.on('host:revealed', (data) => {
   const lb = document.getElementById('revealed-leaderboard');

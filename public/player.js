@@ -3,6 +3,7 @@ const socket = io();
 const screens = {
   join: document.getElementById('screen-join'),
   waiting: document.getElementById('screen-waiting'),
+  wagerBet: document.getElementById('screen-wager-bet'),
   question: document.getElementById('screen-question'),
   submitted: document.getElementById('screen-submitted'),
   reveal: document.getElementById('screen-reveal'),
@@ -52,18 +53,60 @@ socket.on('game:started', () => {
   // handled by question:show which follows immediately
 });
 
+let myWager = null;
+
+socket.on('wager:collect-start', (data) => {
+  myWager = null;
+  document.getElementById('wager-current-score').textContent = data.yourScore;
+  document.getElementById('wager-input').value = '';
+  document.getElementById('wager-error').textContent = '';
+  document.getElementById('btn-submit-wager').disabled = false;
+  showScreen('wagerBet');
+});
+
+document.getElementById('btn-submit-wager').addEventListener('click', () => {
+  const errorEl = document.getElementById('wager-error');
+  errorEl.textContent = '';
+  const raw = document.getElementById('wager-input').value.trim();
+  const amount = parseInt(raw, 10);
+  if (raw === '' || Number.isNaN(amount) || amount < 0) {
+    errorEl.textContent = 'Masukkan angka taruhan yang valid (boleh 0).';
+    return;
+  }
+  document.getElementById('btn-submit-wager').disabled = true;
+  socket.emit('player:submit-wager', { amount }, (res) => {
+    if (!res.ok) {
+      errorEl.textContent = res.error || 'Gagal memasang taruhan.';
+      document.getElementById('btn-submit-wager').disabled = false;
+      return;
+    }
+    myWager = amount;
+    showScreen('waiting');
+    document.getElementById('waiting-name').textContent = myName;
+    document.querySelector('#screen-waiting .status-msg').textContent = 'Taruhan terpasang. Waiting Host...';
+  });
+});
+
 socket.on('question:show', (q) => {
   currentAnswer = null;
   document.getElementById('q-number').textContent = q.number;
   document.getElementById('q-total').textContent = q.total;
-  document.getElementById('q-points').textContent = q.points > 0 ? `${q.points} poin` : 'Survey';
+  const wagerNote = document.getElementById('q-wager-note');
+  if (q.type === 'wager') {
+    document.getElementById('q-points').textContent = '';
+    wagerNote.style.display = 'block';
+    wagerNote.textContent = `Taruhanmu: ${q.yourWager} poin (menang = +${q.yourWager * 2}, kalah = -${q.yourWager})`;
+  } else {
+    document.getElementById('q-points').textContent = q.points > 0 ? `${q.points} poin` : 'Survey';
+    wagerNote.style.display = 'none';
+  }
 
   const mcWrap = document.getElementById('q-mc-wrap');
   const textWrap = document.getElementById('q-text-wrap');
   mcWrap.innerHTML = '';
   document.getElementById('q-text-input').value = '';
 
-  if (q.type === 'short_answer') {
+  if (q.type === 'short_answer' || q.type === 'wager') {
     mcWrap.style.display = 'none';
     textWrap.style.display = 'block';
   } else {
@@ -107,7 +150,15 @@ socket.on('question:locked', () => {
 
 socket.on('question:reveal', (data) => {
   const banner = document.getElementById('reveal-banner');
-  if (data.yourResult === true) {
+  if (data.isWager) {
+    if (data.yourResult === true) {
+      banner.className = 'result-banner good';
+      banner.textContent = `🎉 Kamu MENANG taruhan! +${data.yourWager * 2} poin`;
+    } else {
+      banner.className = 'result-banner bad';
+      banner.textContent = data.yourWager > 0 ? `😢 Taruhanmu meleset, -${data.yourWager} poin` : 'Taruhanmu 0, tidak ada perubahan poin';
+    }
+  } else if (data.yourResult === true) {
     banner.className = 'result-banner good';
     banner.textContent = '🎉 Jawaban kamu BENAR!';
   } else if (data.yourResult === false) {
