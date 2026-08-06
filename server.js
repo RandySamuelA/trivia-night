@@ -20,8 +20,10 @@ function loadQuestions() {
 
 // ---------- In-memory state ----------
 // rooms[code] = {
-//   code, hostSocketId, state: 'lobby'|'question'|'reveal'|'ended',
-//   questions, currentIndex, players: Map(socketId -> {name, score, answer, judged, correct}),
+//   code, hostSocketId,
+//   state: 'lobby'|'question'|'wager-collect'|'wager-question'|'reveal'|'ended',
+//   questions, currentIndex,
+//   players: Map(socketId -> {name, score, answer, correct, matches, wager, wagerWin}),
 // }
 const rooms = {};
 
@@ -73,16 +75,67 @@ function normalizeAnswer(str) {
     .trim();
 }
 
+// For "survey" questions, the vote options are NOT hardcoded in questions.json -
+// they are generated live from whoever has actually joined the room, so the
+// list always matches the real players at the table.
+function getQuestionOptions(q, room) {
+  if (q.type === 'survey') {
+    return Array.from(room.players.values()).map((p) => p.name);
+  }
+  return q.options || [];
+}
 
-function questionForPlayer(q) {
+function questionForPlayer(q, room) {
   // Players never see the question text/title (that's on the PowerPoint).
   // They only see the answer input matching the question type.
   return {
-    index: undefined,
     type: q.type,
-    options: q.options,
+    options: getQuestionOptions(q, room),
     points: q.points,
   };
+}
+
+// Moves the room into whichever phase the current question needs:
+// a normal question, or - for the special "wager" type - the wager
+// collection phase first. Used by both host:start-game and host:next-question.
+function advanceToCurrentQuestion(room) {
+  const q = currentQuestion(room);
+
+  for (const p of room.players.values()) {
+    p.answer = null;
+    p.correct = false;
+    p.matches = 0;
+    p.wager = null;
+    p.wagerWin = null;
+  }
+
+  if (q.type === 'wager') {
+    room.state = 'wager-collect';
+    for (const [id, p] of room.players.entries()) {
+      io.to(id).emit('wager:collect-start', { yourScore: p.score });
+    }
+    io.to(room.hostSocketId).emit('host:wager-collect-start', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      submittedCount: 0,
+      totalPlayers: room.players.size,
+      players: publicPlayerList(room),
+    });
+  } else {
+    room.state = 'question';
+    io.to(room.code).emit('question:show', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      ...questionForPlayer(q, room),
+    });
+    io.to(room.hostSocketId).emit('host:question-live', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      question: { ...q, options: getQuestionOptions(q, room) },
+      submittedCount: 0,
+      totalPlayers: room.players.size,
+    });
+  }
 }
 
 // ---------- Static files ----------
@@ -119,7 +172,8 @@ io.on('connection', (socket) => {
     // Build the join URL from the actual request the host's browser used to
     // load the dashboard. This makes it work automatically whether it's
     // opened via a local Wi-Fi IP (http://192.168.x.x:3000) or a hosted
-    // public URL (https://your-app.onrender.com) - no code changes needed.
+    // public URL (https://your-app.onrender.com / .up.railway.app) - no code
+    // changes needed.
     const headers = socket.handshake.headers;
     const forwardedProto = headers['x-forwarded-proto'];
     const protocol = forwardedProto ? forwardedProto.split(',')[0].trim() : 'http';
@@ -140,27 +194,9 @@ io.on('connection', (socket) => {
   socket.on('host:start-game', () => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
-    room.state = 'question';
     room.currentIndex = 0;
-    for (const p of room.players.values()) {
-      p.answer = null;
-      p.judged = false;
-      p.correct = false;
-    }
-    const q = currentQuestion(room);
     io.to(room.code).emit('game:started');
-    io.to(room.code).emit('question:show', {
-      number: room.currentIndex + 1,
-      total: room.questions.length,
-      ...questionForPlayer(q),
-    });
-    io.to(room.hostSocketId).emit('host:question-live', {
-      number: room.currentIndex + 1,
-      total: room.questions.length,
-      question: q,
-      submittedCount: 0,
-      totalPlayers: room.players.size,
-    });
+    advanceToCurrentQuestion(room);
   });
 
   socket.on('host:end-timer', () => {
@@ -170,16 +206,11 @@ io.on('connection', (socket) => {
     io.to(room.code).emit('question:locked');
   });
 
-  socket.on('host:judge-short-answer', () => {
-    // No longer used: short_answer is now graded automatically against
-    // the question's `correctAnswer` key (see host:reveal). Kept as a
-    // no-op for backward compatibility with any older client caches.
-  });
-
   socket.on('host:reveal', ({ correctAnswer }) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     const q = currentQuestion(room);
+    if (q.type === 'wager') return; // wager round is finalized via host:finalize-wager
     room.state = 'reveal';
 
     if (q.type === 'survey') {
@@ -240,31 +271,12 @@ io.on('connection', (socket) => {
     });
   });
 
-
   socket.on('host:next-question', () => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     if (room.currentIndex >= room.questions.length - 1) return;
     room.currentIndex += 1;
-    room.state = 'question';
-    for (const p of room.players.values()) {
-      p.answer = null;
-      p.judged = false;
-      p.correct = false;
-    }
-    const q = currentQuestion(room);
-    io.to(room.code).emit('question:show', {
-      number: room.currentIndex + 1,
-      total: room.questions.length,
-      ...questionForPlayer(q),
-    });
-    io.to(room.hostSocketId).emit('host:question-live', {
-      number: room.currentIndex + 1,
-      total: room.questions.length,
-      question: q,
-      submittedCount: 0,
-      totalPlayers: room.players.size,
-    });
+    advanceToCurrentQuestion(room);
   });
 
   socket.on('host:end-game', () => {
@@ -273,6 +285,77 @@ io.on('connection', (socket) => {
     room.state = 'ended';
     const board = leaderboard(room);
     io.to(room.code).emit('game:ended', { leaderboard: board });
+  });
+
+  // ---- WAGER ROUND (final round) ----
+  socket.on('host:proceed-to-wager-question', () => {
+    const room = rooms[socket.data.roomCode];
+    if (!room || room.hostSocketId !== socket.id) return;
+    if (room.state !== 'wager-collect') return;
+    const q = currentQuestion(room);
+    // Anyone who didn't place a bet defaults to a wager of 0 (can't win/lose points).
+    for (const p of room.players.values()) {
+      if (p.wager === null || p.wager === undefined) p.wager = 0;
+    }
+    room.state = 'wager-question';
+    for (const [id, p] of room.players.entries()) {
+      io.to(id).emit('question:show', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        type: 'wager',
+        options: [],
+        points: 0,
+        yourWager: p.wager,
+      });
+    }
+    io.to(room.hostSocketId).emit('host:wager-question-live', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      submittedCount: 0,
+      totalPlayers: room.players.size,
+      players: Array.from(room.players.entries()).map(([id, p]) => ({
+        id, name: p.name, wager: p.wager, answerText: null, hasAnswered: false,
+      })),
+    });
+  });
+
+  socket.on('host:finalize-wager', ({ winnerIds }) => {
+    const room = rooms[socket.data.roomCode];
+    if (!room || room.hostSocketId !== socket.id) return;
+    const q = currentQuestion(room);
+    if (q.type !== 'wager' || room.state !== 'wager-question') return;
+    room.state = 'reveal';
+
+    const winners = new Set(winnerIds || []);
+    for (const [id, p] of room.players.entries()) {
+      const wager = p.wager || 0;
+      if (winners.has(id)) {
+        p.wagerWin = true;
+        p.score += wager * 2;
+      } else {
+        p.wagerWin = false;
+        p.score -= wager;
+      }
+    }
+
+    const board = leaderboard(room);
+    const isLast = room.currentIndex >= room.questions.length - 1;
+
+    for (const [id, p] of room.players.entries()) {
+      io.to(id).emit('question:reveal', {
+        isWager: true,
+        yourWager: p.wager || 0,
+        yourResult: p.wagerWin,
+        yourAnswer: p.answer,
+        yourScore: p.score,
+        leaderboard: board.slice(0, 5),
+      });
+    }
+    io.to(room.hostSocketId).emit('host:revealed', {
+      leaderboard: board,
+      isLast,
+      players: publicPlayerList(room),
+    });
   });
 
   // ---- PLAYER EVENTS ----
@@ -287,7 +370,9 @@ io.on('connection', (socket) => {
     );
     if (nameTaken) return cb({ ok: false, error: 'Nama sudah dipakai peserta lain.' });
 
-    room.players.set(socket.id, { name: trimmed, score: 0, answer: null, judged: false, correct: false });
+    room.players.set(socket.id, {
+      name: trimmed, score: 0, answer: null, correct: false, matches: 0, wager: null, wagerWin: null,
+    });
     socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.isHost = false;
@@ -296,9 +381,30 @@ io.on('connection', (socket) => {
     io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
   });
 
+  socket.on('player:submit-wager', ({ amount }, cb) => {
+    const room = rooms[socket.data.roomCode];
+    if (!room || room.state !== 'wager-collect') return cb && cb({ ok: false, error: 'Bukan waktunya bertaruh.' });
+    const p = room.players.get(socket.id);
+    if (!p) return cb && cb({ ok: false });
+    if (p.wager !== null && p.wager !== undefined) return cb && cb({ ok: false, error: 'Taruhan sudah dikirim.' });
+    const amt = Math.floor(Number(amount));
+    if (!Number.isFinite(amt) || amt < 0 || amt > p.score) {
+      return cb && cb({ ok: false, error: `Taruhan harus antara 0 - ${p.score}.` });
+    }
+    p.wager = amt;
+    cb && cb({ ok: true });
+
+    const submittedCount = Array.from(room.players.values()).filter((pl) => pl.wager !== null).length;
+    io.to(room.hostSocketId).emit('host:wager-collect-update', {
+      submittedCount,
+      totalPlayers: room.players.size,
+      players: publicPlayerList(room),
+    });
+  });
+
   socket.on('player:submit-answer', ({ answer }, cb) => {
     const room = rooms[socket.data.roomCode];
-    if (!room || room.state !== 'question') return cb && cb({ ok: false });
+    if (!room || (room.state !== 'question' && room.state !== 'wager-question')) return cb && cb({ ok: false });
     const p = room.players.get(socket.id);
     if (!p || p.answer !== null) return cb && cb({ ok: false });
     p.answer = answer;
@@ -306,6 +412,18 @@ io.on('connection', (socket) => {
 
     const submittedCount = Array.from(room.players.values()).filter((pl) => pl.answer !== null).length;
     const q = currentQuestion(room);
+
+    if (room.state === 'wager-question') {
+      io.to(room.hostSocketId).emit('host:wager-question-update', {
+        submittedCount,
+        totalPlayers: room.players.size,
+        players: Array.from(room.players.entries()).map(([id, pl]) => ({
+          id, name: pl.name, wager: pl.wager || 0, answerText: pl.answer, hasAnswered: pl.answer !== null,
+        })),
+      });
+      return;
+    }
+
     const payload = {
       submittedCount,
       totalPlayers: room.players.size,
@@ -314,7 +432,7 @@ io.on('connection', (socket) => {
     if (q && q.type === 'short_answer') {
       payload.shortAnswers = Array.from(room.players.entries())
         .filter(([, pl]) => pl.answer !== null)
-        .map(([id, pl]) => ({ id, name: pl.name, answerText: pl.answer, judged: pl.judged }));
+        .map(([id, pl]) => ({ id, name: pl.name, answerText: pl.answer }));
     }
     io.to(room.hostSocketId).emit('host:submission-update', payload);
   });

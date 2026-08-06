@@ -33,7 +33,7 @@
     "label": "Question 5 (Survey - siapa paling mungkin...)",
     "type": "survey",
     "points": 20,
-    "options": ["Randy", "Kevin", "Steven"]
+    "options": []
   },
   {
     "id": 6,
@@ -41,5 +41,12 @@
     "type": "multiple_choice",
     "points": 40,
     "options": ["A", "B", "C", "D"]
+  },
+  {
+    "id": 7,
+    "label": "Final Wager - Soal Terakhir",
+    "type": "wager",
+    "points": 0,
+    "options": []
   }
 ]
