@@ -99,6 +99,7 @@ socket.on('song:tier-start', (data) => {
   document.getElementById('song-tier-info').textContent =
     `Tier ${data.tier} detik — jawab sekarang untuk dapat ${data.points} poin!`;
   document.getElementById('song-answer-input').value = '';
+  document.getElementById('btn-submit-song').disabled = false;
   showScreen('songAnswer');
 });
 
@@ -127,6 +128,7 @@ socket.on('question:show', (q) => {
   const textWrap = document.getElementById('q-text-wrap');
   mcWrap.innerHTML = '';
   document.getElementById('q-text-input').value = '';
+  document.getElementById('btn-submit-text').disabled = false;
 
   if (q.type === 'short_answer' || q.type === 'wager') {
     mcWrap.style.display = 'none';

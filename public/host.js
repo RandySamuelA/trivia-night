@@ -67,6 +67,7 @@ socket.on('host:question-live', (data) => {
     `${currentQuestion.label || 'Soal'} — ${typeLabels[currentQuestion.type]}`;
   document.getElementById('game-submit-count').textContent =
     `${data.submittedCount} / ${data.totalPlayers} sudah submit`;
+  updateGamePlayerList(data.players || []);
 
   document.getElementById('mc-correct-wrap').style.display = 'none';
   document.getElementById('short-judge-wrap').style.display = 'none';
