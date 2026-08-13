@@ -46,6 +46,35 @@
     "id": 7,
     "label": "Tebak Lagu",
     "type": "song_guess",
+    "audioFile": "Take A Chance With Me.mp3",
+    "tierPoints": [50, 40, 30, 20, 10]
+  },
+  {
+    "id": 8,
+    "label": "Tebak Lagu",
+    "type": "song_guess",
+    "audioFile": "505.mp3",
+    "tierPoints": [50, 40, 30, 20, 10]
+  },
+  {
+    "id": 9,
+    "label": "Tebak Lagu",
+    "type": "song_guess",
+    "audioFile": "Best Song Ever.mp3",
+    "tierPoints": [50, 40, 30, 20, 10]
+  },
+  {
+    "id": 10,
+    "label": "Tebak Lagu",
+    "type": "song_guess",
+    "audioFile": "Golden Hour.mp3",
+    "tierPoints": [50, 40, 30, 20, 10]
+  },
+  {
+    "id": 11,
+    "label": "Tebak Lagu",
+    "type": "song_guess",
+    "audioFile": "A Whole New World.mp3",
     "audioFile": "song1.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
