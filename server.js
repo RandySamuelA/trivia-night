@@ -160,6 +160,7 @@ function advanceToCurrentQuestion(room) {
       question: { ...q, options: getQuestionOptions(q, room) },
       submittedCount: 0,
       totalPlayers: room.players.size,
+      players: publicPlayerList(room),
     });
   }
 }
