@@ -11,6 +11,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+const DEFAULT_TIER_POINTS = [50, 40, 30, 20, 10];
 
 // ---------- Load question bank ----------
 function loadQuestions() {
@@ -21,9 +22,9 @@ function loadQuestions() {
 // ---------- In-memory state ----------
 // rooms[code] = {
 //   code, hostSocketId,
-//   state: 'lobby'|'question'|'wager-collect'|'wager-question'|'reveal'|'ended',
-//   questions, currentIndex,
-//   players: Map(socketId -> {name, score, answer, correct, matches, wager, wagerWin}),
+//   state: 'lobby'|'question'|'wager-collect'|'wager-question'|'song-ready'|'song-tier'|'reveal'|'ended',
+//   questions, currentIndex, songTier,
+//   players: Map(socketId -> {name, score, answer, correct, matches, wager, wagerWin, songTier}),
 // }
 const rooms = {};
 
@@ -45,12 +46,16 @@ function getLanIp() {
   return 'localhost';
 }
 
+// Full, host-only view of every player - includes their live answer text so
+// the host can see, in real time, exactly what each player has typed/picked
+// for the current question, across every question type.
 function publicPlayerList(room) {
   return Array.from(room.players.entries()).map(([id, p]) => ({
     id,
     name: p.name,
     score: p.score,
     submitted: p.answer !== null,
+    answer: p.answer,
   }));
 }
 
@@ -85,6 +90,10 @@ function getQuestionOptions(q, room) {
   return q.options || [];
 }
 
+function getTierPoints(q) {
+  return Array.isArray(q.tierPoints) && q.tierPoints.length >= 5 ? q.tierPoints : DEFAULT_TIER_POINTS;
+}
+
 function questionForPlayer(q, room) {
   // Players never see the question text/title (that's on the PowerPoint).
   // They only see the answer input matching the question type.
@@ -95,9 +104,9 @@ function questionForPlayer(q, room) {
   };
 }
 
-// Moves the room into whichever phase the current question needs:
-// a normal question, or - for the special "wager" type - the wager
-// collection phase first. Used by both host:start-game and host:next-question.
+// Moves the room into whichever phase the current question needs: a normal
+// question, the wager-collection phase, or the song-guess "get ready" phase.
+// Used by both host:start-game and host:next-question.
 function advanceToCurrentQuestion(room) {
   const q = currentQuestion(room);
 
@@ -107,6 +116,7 @@ function advanceToCurrentQuestion(room) {
     p.matches = 0;
     p.wager = null;
     p.wagerWin = null;
+    p.songTier = null;
   }
 
   if (q.type === 'wager') {
@@ -117,6 +127,22 @@ function advanceToCurrentQuestion(room) {
     io.to(room.hostSocketId).emit('host:wager-collect-start', {
       number: room.currentIndex + 1,
       total: room.questions.length,
+      submittedCount: 0,
+      totalPlayers: room.players.size,
+      players: publicPlayerList(room),
+    });
+  } else if (q.type === 'song_guess') {
+    room.state = 'song-ready';
+    room.songTier = 0;
+    io.to(room.code).emit('song:ready', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+    });
+    io.to(room.hostSocketId).emit('host:song-ready', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      audioFile: q.audioFile,
+      tierPoints: getTierPoints(q),
       submittedCount: 0,
       totalPlayers: room.players.size,
       players: publicPlayerList(room),
@@ -162,6 +188,7 @@ io.on('connection', (socket) => {
       state: 'lobby',
       questions: loadQuestions(),
       currentIndex: -1,
+      songTier: 0,
       players: new Map(),
     };
     rooms[code] = room;
@@ -210,7 +237,7 @@ io.on('connection', (socket) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     const q = currentQuestion(room);
-    if (q.type === 'wager') return; // wager round is finalized via host:finalize-wager
+    if (q.type === 'wager' || q.type === 'song_guess') return; // these use their own finalize events
     room.state = 'reveal';
 
     if (q.type === 'survey') {
@@ -261,7 +288,7 @@ io.on('connection', (socket) => {
         yourResult: q.type === 'survey' ? null : p.correct,
         yourMatches: q.type === 'survey' ? p.matches : undefined,
         yourScore: p.score,
-        leaderboard: board.slice(0, 5),
+        leaderboard: board,
       });
     }
     io.to(room.hostSocketId).emit('host:revealed', {
@@ -292,7 +319,6 @@ io.on('connection', (socket) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     if (room.state !== 'wager-collect') return;
-    const q = currentQuestion(room);
     // Anyone who didn't place a bet defaults to a wager of 0 (can't win/lose points).
     for (const p of room.players.values()) {
       if (p.wager === null || p.wager === undefined) p.wager = 0;
@@ -348,7 +374,79 @@ io.on('connection', (socket) => {
         yourResult: p.wagerWin,
         yourAnswer: p.answer,
         yourScore: p.score,
-        leaderboard: board.slice(0, 5),
+        leaderboard: board,
+      });
+    }
+    io.to(room.hostSocketId).emit('host:revealed', {
+      leaderboard: board,
+      isLast,
+      players: publicPlayerList(room),
+    });
+  });
+
+  // ---- SONG GUESS ROUND ----
+  socket.on('host:song-play-tier', ({ tier }) => {
+    const room = rooms[socket.data.roomCode];
+    if (!room || room.hostSocketId !== socket.id) return;
+    const q = currentQuestion(room);
+    if (q.type !== 'song_guess') return;
+    if (room.state !== 'song-ready' && room.state !== 'song-tier') return;
+    const t = Math.max(1, Math.min(5, Math.floor(tier)));
+    if (t < room.songTier) return; // can't go backwards
+    room.songTier = t;
+    room.state = 'song-tier';
+    const points = getTierPoints(q)[t - 1];
+
+    // Broadcast to the room - players who already answered simply ignore this
+    // (their screen stays on "answer submitted").
+    io.to(room.code).emit('song:tier-start', { tier: t, points });
+
+    const submittedCount = Array.from(room.players.values()).filter((p) => p.answer !== null).length;
+    io.to(room.hostSocketId).emit('host:song-tier-update', {
+      tier: t,
+      submittedCount,
+      totalPlayers: room.players.size,
+      players: publicPlayerList(room),
+    });
+  });
+
+  socket.on('host:finalize-song', ({ correctIds }) => {
+    const room = rooms[socket.data.roomCode];
+    if (!room || room.hostSocketId !== socket.id) return;
+    const q = currentQuestion(room);
+    if (q.type !== 'song_guess' || room.state !== 'song-tier') return;
+    room.state = 'reveal';
+
+    const tierPoints = getTierPoints(q);
+    const correctSet = new Set(correctIds || []);
+    const earned = {};
+
+    for (const [id, p] of room.players.entries()) {
+      if (p.answer === null) {
+        p.correct = false;
+        earned[id] = 0;
+        continue;
+      }
+      const isCorrect = correctSet.has(id);
+      p.correct = isCorrect;
+      const tier = p.songTier || 5;
+      const pts = isCorrect ? (tierPoints[tier - 1] || 0) : 0;
+      earned[id] = pts;
+      if (isCorrect) p.score += pts;
+    }
+
+    const board = leaderboard(room);
+    const isLast = room.currentIndex >= room.questions.length - 1;
+
+    for (const [id, p] of room.players.entries()) {
+      io.to(id).emit('question:reveal', {
+        isSong: true,
+        yourAnswer: p.answer,
+        yourResult: p.answer === null ? null : p.correct,
+        yourTier: p.songTier,
+        yourPointsEarned: earned[id],
+        yourScore: p.score,
+        leaderboard: board,
       });
     }
     io.to(room.hostSocketId).emit('host:revealed', {
@@ -371,7 +469,8 @@ io.on('connection', (socket) => {
     if (nameTaken) return cb({ ok: false, error: 'Nama sudah dipakai peserta lain.' });
 
     room.players.set(socket.id, {
-      name: trimmed, score: 0, answer: null, correct: false, matches: 0, wager: null, wagerWin: null,
+      name: trimmed, score: 0, answer: null, correct: false, matches: 0,
+      wager: null, wagerWin: null, songTier: null,
     });
     socket.join(roomCode);
     socket.data.roomCode = roomCode;
@@ -404,10 +503,13 @@ io.on('connection', (socket) => {
 
   socket.on('player:submit-answer', ({ answer }, cb) => {
     const room = rooms[socket.data.roomCode];
-    if (!room || (room.state !== 'question' && room.state !== 'wager-question')) return cb && cb({ ok: false });
+    if (!room || !['question', 'wager-question', 'song-tier'].includes(room.state)) {
+      return cb && cb({ ok: false });
+    }
     const p = room.players.get(socket.id);
     if (!p || p.answer !== null) return cb && cb({ ok: false });
     p.answer = answer;
+    if (room.state === 'song-tier') p.songTier = room.songTier;
     cb && cb({ ok: true });
 
     const submittedCount = Array.from(room.players.values()).filter((pl) => pl.answer !== null).length;
@@ -420,6 +522,16 @@ io.on('connection', (socket) => {
         players: Array.from(room.players.entries()).map(([id, pl]) => ({
           id, name: pl.name, wager: pl.wager || 0, answerText: pl.answer, hasAnswered: pl.answer !== null,
         })),
+      });
+      return;
+    }
+
+    if (room.state === 'song-tier') {
+      io.to(room.hostSocketId).emit('host:song-tier-update', {
+        tier: room.songTier,
+        submittedCount,
+        totalPlayers: room.players.size,
+        players: publicPlayerList(room),
       });
       return;
     }

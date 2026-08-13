@@ -86,7 +86,8 @@ Jenis (`type`) yang didukung:
   A, B, D semua vote "Player A", sedangkan C vote "Player D". Karena A, B, D saling cocok
   (masing-masing punya 2 orang lain yang sama), mereka masing-masing dapat 2 × `points`
   (mis. 2 × 20 = 40 poin), sedangkan C tidak dapat poin sama sekali.
-- `wager` → Ronde Taruhan Akhir. Lihat bagian 5 di bawah untuk penjelasan lengkap.
+- `wager` → Ronde Taruhan Akhir. Lihat bagian 6 di bawah untuk penjelasan lengkap.
+- `song_guess` → Ronde Tebak Lagu. Lihat bagian 5 di bawah untuk penjelasan lengkap.
 
 Field tambahan per tipe soal:
 - `short_answer` wajib punya `correctAnswer` (string kunci jawaban).
@@ -95,11 +96,53 @@ Field tambahan per tipe soal:
   nama-nama peserta yang benar-benar sedang join di room saat itu (bisa dikosongkan `[]`).
 - `wager` tidak butuh `correctAnswer` atau `options` sama sekali. **Wajib diletakkan sebagai
   soal terakhir** di file ini.
+- `song_guess` butuh `audioFile` (nama file MP3 di folder `public/audio/`) dan `tierPoints`
+  (array 5 angka, poin untuk tier 1–5 detik; default `[50, 40, 30, 20, 10]` kalau tidak diisi).
 
 Tambahkan/hapus/edit soal langsung di file ini sebelum acara dimulai.
-Urutan soal di file ini = urutan soal yang harus Anda tampilkan di PowerPoint.
+Urutan soal di file ini = urutan soal yang harus Anda tampilkan di PowerPoint (kecuali
+`song_guess`, yang lagunya diputar langsung dari dashboard host, bukan dari PowerPoint).
 
-## 5. Ronde Taruhan Akhir (Final Wager)
+## 5. Ronde Tebak Lagu
+
+Kalau ada soal bertipe `"song_guess"` di `questions.json`, alurnya beda total dari soal
+lain — lagunya **diputar langsung dari laptop host** (bukan lewat PowerPoint), dan HP
+peserta hanya untuk mengetik tebakan.
+
+**Persiapan sebelum acara:**
+1. Siapkan file MP3 lagu-lagunya, sebaiknya sudah di-*trim* jadi klip 10–15 detik
+   (bagian paling catchy/reff-nya) — bisa pakai Audacity (gratis) atau aplikasi edit audio lain.
+2. Taruh file MP3 tersebut di folder `public/audio/` (lihat `public/audio/README.md`
+   untuk detail).
+3. Di `questions.json`, isi `audioFile` dengan nama file itu persis, misalnya `"song1.mp3"`.
+4. (Opsional) atur `tierPoints` — poin yang didapat kalau menjawab benar di detik ke-1, 2, 3,
+   4, atau 5. Defaultnya `[50, 40, 30, 20, 10]` — makin cepat menjawab benar, makin besar
+   poinnya.
+
+**Alur saat main:**
+1. Setelah **Next Question** sampai di soal `song_guess`, layar host pindah ke
+   **"🎵 Tebak Lagu"**. Peserta di HP masing-masing melihat "Menunggu host memutar lagu...".
+2. Host klik tombol **"▶ 1 detik (50 poin)"** — lagu akan diputar lewat speaker
+   laptop/TV host untuk 1 detik saja, dan HP semua peserta yang **belum menjawab** langsung
+   berubah jadi kolom isian jawaban, dengan keterangan "jawab sekarang untuk dapat 50 poin!".
+3. Begitu peserta submit jawaban, HP mereka langsung pindah ke layar "menunggu", dan
+   **host langsung melihat jawabannya secara realtime** di dashboard (tidak perlu tunggu
+   semua orang selesai).
+4. Kalau belum semua menjawab, host klik tombol tier berikutnya, misalnya
+   **"▶ 2 detik (40 poin)"** — lagu diputar ulang dari awal tapi sampai detik ke-2, dan HANYA
+   peserta yang **belum menjawab** yang kolom jawabannya terbuka lagi (yang sudah menjawab di
+   tier sebelumnya tetap terkunci dengan jawaban & poin mereka).
+5. Ulangi sampai tier 5 detik, **atau berhenti lebih awal** kapan saja semua peserta sudah
+   menjawab (tidak wajib sampai tier 5 kalau semua sudah submit di tier 3, misalnya).
+6. Di dashboard host akan terlihat daftar semua peserta beserta jawaban mereka (realtime).
+   Host mencentang **"Benar"** untuk siapa saja yang jawabannya tepat (boleh typo dikit,
+   host yang menilai secara manual — cocok untuk judul lagu yang sering beda-beda ejaannya).
+7. Klik **"Reveal & Hitung Skor"**. Peserta yang dicentang benar dapat poin sesuai **tier saat
+   mereka menjawab** (bukan tier terakhir yang diputar) — jadi yang menjawab benar di detik
+   ke-1 dapat lebih banyak poin daripada yang baru menjawab benar di detik ke-5. Peserta yang
+   salah atau tidak sempat menjawab dapat 0 poin (tidak ada pengurangan).
+
+## 6. Ronde Taruhan Akhir (Final Wager)
 
 Kalau ada soal bertipe `"wager"` di `questions.json` (sebaiknya di posisi paling akhir),
 alurnya beda dari soal biasa:
@@ -125,7 +168,7 @@ alurnya beda dari soal biasa:
 Contoh: skor awal 140, bertaruh 70 poin, host mencentang dia sebagai pemenang →
 skor jadi 140 + (2×70) = 280. Kalau tidak dicentang (kalah) → skor jadi 140 - 70 = 70.
 
-## 6. Catatan Penting
+## 7. Catatan Penting
 
 - Data (nama peserta, skor, jawaban) hanya disimpan di **memori (RAM)** laptop host selama
   server menyala — sesuai kebutuhan (tidak perlu database, karena aplikasi sekali pakai).
@@ -140,7 +183,7 @@ Selamat berlibur & semoga serunya berasa seperti Kahoot pribadi kalian sendiri! 
 
 ---
 
-## 7. Hosting Online Gratis (Sementara, ~2 Minggu)
+## 8. Hosting Online Gratis (Sementara, ~2 Minggu)
 
 Kalau membuka app lewat Wi-Fi lokal terasa lambat, kalian bisa host aplikasi ini
 **online gratis** untuk sementara. Dengan begini, peserta tinggal buka link biasa
