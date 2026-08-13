@@ -3,6 +3,8 @@ const socket = io();
 const screens = {
   join: document.getElementById('screen-join'),
   waiting: document.getElementById('screen-waiting'),
+  songWait: document.getElementById('screen-song-wait'),
+  songAnswer: document.getElementById('screen-song-answer'),
   wagerBet: document.getElementById('screen-wager-bet'),
   question: document.getElementById('screen-question'),
   submitted: document.getElementById('screen-submitted'),
@@ -87,6 +89,26 @@ document.getElementById('btn-submit-wager').addEventListener('click', () => {
   });
 });
 
+socket.on('song:ready', () => {
+  currentAnswer = null;
+  showScreen('songWait');
+});
+
+socket.on('song:tier-start', (data) => {
+  if (currentAnswer !== null) return; // already answered, stay on submitted screen
+  document.getElementById('song-tier-info').textContent =
+    `Tier ${data.tier} detik — jawab sekarang untuk dapat ${data.points} poin!`;
+  document.getElementById('song-answer-input').value = '';
+  showScreen('songAnswer');
+});
+
+document.getElementById('btn-submit-song').addEventListener('click', () => {
+  const val = document.getElementById('song-answer-input').value.trim();
+  if (!val || currentAnswer !== null) return;
+  document.getElementById('btn-submit-song').disabled = true;
+  submitAnswer(val, null, null);
+});
+
 socket.on('question:show', (q) => {
   currentAnswer = null;
   document.getElementById('q-number').textContent = q.number;
@@ -157,6 +179,17 @@ socket.on('question:reveal', (data) => {
     } else {
       banner.className = 'result-banner bad';
       banner.textContent = data.yourWager > 0 ? `😢 Taruhanmu meleset, -${data.yourWager} poin` : 'Taruhanmu 0, tidak ada perubahan poin';
+    }
+  } else if (data.isSong) {
+    if (data.yourAnswer === null) {
+      banner.className = 'result-banner neutral';
+      banner.textContent = 'Kamu tidak sempat menjawab';
+    } else if (data.yourResult === true) {
+      banner.className = 'result-banner good';
+      banner.textContent = `🎉 Benar! +${data.yourPointsEarned} poin (tier ${data.yourTier} detik)`;
+    } else {
+      banner.className = 'result-banner bad';
+      banner.textContent = '❌ Jawaban kamu salah';
     }
   } else if (data.yourResult === true) {
     banner.className = 'result-banner good';

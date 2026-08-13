@@ -4,6 +4,7 @@ const screens = {
   setup: document.getElementById('screen-setup'),
   lobby: document.getElementById('screen-lobby'),
   game: document.getElementById('screen-game'),
+  song: document.getElementById('screen-song'),
   wagerCollect: document.getElementById('screen-wager-collect'),
   wagerQuestion: document.getElementById('screen-wager-question'),
   revealed: document.getElementById('screen-revealed'),
@@ -112,7 +113,8 @@ function updateGamePlayerList(players) {
   list.innerHTML = '';
   players.forEach((p) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="badge ${p.submitted ? 'done' : ''}">${p.submitted ? 'submitted' : 'menunggu'}</span>`;
+    const badgeText = p.submitted ? `✓ ${escapeHtml(String(p.answer))}` : 'menunggu';
+    li.innerHTML = `<span>${escapeHtml(p.name)}</span><span class="badge ${p.submitted ? 'done' : ''}">${badgeText}</span>`;
     list.appendChild(li);
   });
 }
@@ -144,6 +146,96 @@ function renderShortAnswerList(shortAnswers) {
     .join('');
   wrap.innerHTML = keyLine + rows;
 }
+
+// ---------- SONG GUESS ROUND ----------
+let songTierPoints = [50, 40, 30, 20, 10];
+let songPlayersState = [];
+let songCurrentTier = 0;
+
+socket.on('host:song-ready', (data) => {
+  currentQuestion = { type: 'song_guess' };
+  songTierPoints = data.tierPoints || songTierPoints;
+  songCurrentTier = 0;
+  songPlayersState = data.players || [];
+
+  const audio = document.getElementById('song-audio');
+  audio.src = `/audio/${data.audioFile}`;
+  audio.currentTime = 0;
+
+  document.getElementById('song-tier-label').textContent = 'Belum diputar - klik salah satu tombol di bawah';
+  document.getElementById('song-submit-count').textContent = `${data.submittedCount} / ${data.totalPlayers} sudah menjawab`;
+  renderSongTierButtons();
+  renderSongJudgeList(songPlayersState);
+  showScreen('song');
+});
+
+function renderSongTierButtons() {
+  const wrap = document.getElementById('song-tier-buttons');
+  wrap.innerHTML = '';
+  for (let t = 1; t <= 5; t++) {
+    const btn = document.createElement('button');
+    btn.textContent = `▶ ${t} detik (${songTierPoints[t - 1]} poin)`;
+    btn.disabled = t < songCurrentTier; // can replay current/next, not go backwards
+    btn.addEventListener('click', () => playSongTier(t));
+    wrap.appendChild(btn);
+  }
+}
+
+function playSongTier(tier) {
+  const audio = document.getElementById('song-audio');
+  audio.currentTime = 0;
+  audio.play().catch(() => {
+    alert('Klik tombol lagi kalau audio tidak otomatis putar (browser kadang perlu 1x klik dulu).');
+  });
+  clearTimeout(window.__songStopTimer);
+  window.__songStopTimer = setTimeout(() => audio.pause(), tier * 1000);
+  socket.emit('host:song-play-tier', { tier });
+}
+
+socket.on('host:song-tier-update', (data) => {
+  songCurrentTier = data.tier;
+  songPlayersState = data.players;
+  document.getElementById('song-tier-label').textContent = `Tier saat ini: ${data.tier} detik (${songTierPoints[data.tier - 1]} poin)`;
+  document.getElementById('song-submit-count').textContent = `${data.submittedCount} / ${data.totalPlayers} sudah menjawab`;
+  renderSongTierButtons();
+  const checkedIds = new Set(
+    Array.from(document.querySelectorAll('#song-judge-list input[type=checkbox]:checked')).map((el) => el.dataset.id)
+  );
+  renderSongJudgeList(songPlayersState, checkedIds);
+});
+
+function renderSongJudgeList(players, checkedIds) {
+  const wrap = document.getElementById('song-judge-list');
+  wrap.innerHTML = '';
+  if (!players || players.length === 0) {
+    wrap.innerHTML = '<p class="hint">Menunggu peserta menjawab...</p>';
+    return;
+  }
+  players.forEach((p) => {
+    const row = document.createElement('div');
+    row.className = 'short-answer-row';
+    const answerLabel = p.submitted ? `"${escapeHtml(String(p.answer))}"` : '<em>belum menjawab</em>';
+    const isChecked = checkedIds && checkedIds.has(p.id);
+    row.innerHTML = `
+      <span class="txt">${escapeHtml(p.name)} — ${answerLabel}</span>
+      <label style="display:flex;align-items:center;gap:4px;">
+        <input type="checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''} ${p.submitted ? '' : 'disabled'} />
+        Benar
+      </label>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+document.getElementById('btn-finalize-song').addEventListener('click', () => {
+  const audio = document.getElementById('song-audio');
+  audio.pause();
+  clearTimeout(window.__songStopTimer);
+  const correctIds = Array.from(document.querySelectorAll('#song-judge-list input[type=checkbox]:checked')).map(
+    (el) => el.dataset.id
+  );
+  socket.emit('host:finalize-song', { correctIds });
+});
 
 document.getElementById('btn-proceed-wager').addEventListener('click', () => {
   socket.emit('host:proceed-to-wager-question');

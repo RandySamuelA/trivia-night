@@ -20,6 +20,24 @@
   </div>
 </div>
 
+<!-- SONG GUESS: WAITING FOR HOST TO PLAY -->
+<div id="screen-song-wait" class="screen">
+  <div class="card">
+    <h1>🎵 Tebak Lagu!</h1>
+    <p class="status-msg pulse">Dengarkan baik-baik... Menunggu host memutar lagunya.</p>
+  </div>
+</div>
+
+<!-- SONG GUESS: ANSWERING -->
+<div id="screen-song-answer" class="screen">
+  <div class="card">
+    <h1>🎵 Tebak Lagunya!</h1>
+    <p class="hint" id="song-tier-info"></p>
+    <input type="text" id="song-answer-input" placeholder="Judul lagu / penyanyi..." maxlength="80" />
+    <button class="btn-primary" id="btn-submit-song">Submit</button>
+  </div>
+</div>
+
 <!-- WAGER: PLACE BET -->
 <div id="screen-wager-bet" class="screen">
   <div class="card">
@@ -72,7 +90,7 @@
     <p class="hint">Skor kamu sekarang</p>
     <div class="room-code" id="reveal-score" style="font-size:2.2rem;"></div>
     <h2 style="margin-top:20px;">Leaderboard</h2>
-    <div id="reveal-leaderboard"></div>
+    <div id="reveal-leaderboard" class="leaderboard-list"></div>
   </div>
 </div>
 
@@ -84,7 +102,7 @@
     <div class="champion" id="final-champion-name"></div>
     <p class="hint" id="final-champion-score"></p>
     <h2 style="margin-top:20px;">Leaderboard Akhir</h2>
-    <div id="final-leaderboard"></div>
+    <div id="final-leaderboard" class="leaderboard-list"></div>
   </div>
 </div>
 

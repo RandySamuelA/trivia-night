@@ -64,6 +64,20 @@
   </div>
 </div>
 
+<!-- SONG GUESS ROUND -->
+<div id="screen-song" class="screen">
+  <div class="card">
+    <h1>🎵 Tebak Lagu</h1>
+    <audio id="song-audio" preload="auto"></audio>
+    <h2 id="song-tier-label">Belum diputar</h2>
+    <div class="answer-grid" id="song-tier-buttons"></div>
+    <h2 id="song-submit-count" style="margin-top:18px;">0 / 0 sudah menjawab</h2>
+    <p class="hint">Centang siapa saja yang JAWABANNYA BENAR:</p>
+    <div class="short-answer-list" id="song-judge-list"></div>
+    <button class="btn-good" id="btn-finalize-song">Reveal &amp; Hitung Skor</button>
+  </div>
+</div>
+
 <!-- WAGER: COLLECTING BETS -->
 <div id="screen-wager-collect" class="screen">
   <div class="card">
@@ -91,7 +105,7 @@
   <div class="card">
     <h1>✅ Jawaban Ditampilkan</h1>
     <h2>Leaderboard Sementara</h2>
-    <div id="revealed-leaderboard"></div>
+    <div id="revealed-leaderboard" class="leaderboard-list"></div>
     <button class="btn-primary" id="btn-next-question">Next Question</button>
     <button class="btn-danger" id="btn-end-game">End Game</button>
   </div>
@@ -105,7 +119,7 @@
     <div class="champion" id="ended-champion-name"></div>
     <p class="hint" id="ended-champion-score"></p>
     <h2 style="margin-top:20px;">Leaderboard Akhir</h2>
-    <div id="ended-leaderboard"></div>
+    <div id="ended-leaderboard" class="leaderboard-list"></div>
   </div>
 </div>
 
