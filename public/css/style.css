@@ -109,6 +109,7 @@ ul.player-list li .badge.done { background: var(--good); color: #002914; }
   background: #12141a; border-radius: 10px; margin-bottom: 8px;
 }
 .leaderboard-row .rank { color: var(--accent); font-weight: 700; margin-right: 8px; }
+.leaderboard-list { max-height: 320px; overflow-y: auto; text-align: left; }
 
 .result-banner { padding: 16px; border-radius: 12px; font-weight: 700; font-size: 1.2rem; margin-bottom: 16px; }
 .result-banner.good { background: rgba(53,201,126,0.15); color: var(--good); }
