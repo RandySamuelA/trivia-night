@@ -145,7 +145,6 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "A Whole New World.mp3",
-    "audioFile": "song1.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
