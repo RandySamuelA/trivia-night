@@ -1,77 +1,147 @@
 [
   {
     "id": 1,
-    "label": "Question 1",
+    "label": "Warmup Question 1",
     "type": "multiple_choice",
     "points": 10,
-    "options": ["A", "B", "C", "D"]
+    "options": ["A. Bumi", "B. Saturnus", "C. Jupiter", "D. Mars"]
   },
   {
     "id": 2,
-    "label": "Question 2",
-    "type": "true_false",
+    "label": "Warmup Question 2",
+    "type": "multiple_choice",
     "points": 10,
-    "options": ["True", "False"]
+    "options": ["A. Yen", "B. Yuan", "C. Won", "D. Dollar"]
   },
   {
     "id": 3,
-    "label": "Question 3",
+    "label": "Warmup Question 3",
     "type": "multiple_choice",
-    "points": 20,
-    "options": ["A", "B", "C", "D"]
+    "points": 10,
+    "options": ["A. 5", "B. 6", "C. 7", "D. 8"]
   },
   {
     "id": 4,
-    "label": "Question 4",
-    "type": "short_answer",
-    "points": 20,
-    "options": [],
-    "correctAnswer": "Neil Armstrong"
+    "label": "Warmup Question 4",
+    "type": "multiple_choice",
+    "points": 10,
+    "options": ["A. Sydney", "B. Melbourne", "C. Canberra", "D. Perth"]
   },
   {
     "id": 5,
-    "label": "Question 5 (Survey - siapa paling mungkin...)",
-    "type": "survey",
-    "points": 20,
-    "options": []
+    "label": "Warmup Question 5",
+    "type": "multiple_choice",
+    "points": 10,
+    "options": ["A. Indonesia", "B. Swedia", "C. Jepang", "D. Filipina"]
   },
   {
     "id": 6,
-    "label": "Question 6",
+    "label": "Tebak Gambar 1",
     "type": "multiple_choice",
-    "points": 40,
-    "options": ["A", "B", "C", "D"]
+    "points": 20,
+    "options": ["A. Inggris", "B. Swiss", "C. Greenland", "D. Georgia"]
   },
   {
     "id": 7,
+    "label": "Tebak Gambar 2",
+    "type": "multiple_choice",
+    "points": 20,
+    "options": ["A. Nepal", "B. Vatikan", "C. Bhutan", "D. Afrika Selatan"]
+  },
+  {
+    "id": 8,
+    "label": "Tebak Logo 1",
+    "type": "short_answer",
+    "points": 20,
+    "options": [],
+    "correctAnswer": "Garuda Indonesia"
+  },
+  {
+    "id": 9,
+    "label": "Tebak Logo 2",
+    "type": "short_answer",
+    "points": 20,
+    "options": [],
+    "correctAnswer": "Chevrolet"
+  },
+  {
+    "id": 10,
+    "label": "Tebak Logo 3",
+    "type": "short_answer",
+    "points": 20,
+    "options": [],
+    "correctAnswer": "Lawson"
+  },
+  {
+    "id": 11,
+    "label": "Tebak Film 1",
+    "type": "short_answer",
+    "points": 25,
+    "options": [],
+    "correctAnswer": "Inside Out"
+  },
+  {
+    "id": 12,
+    "label": "Tebak Film 2",
+    "type": "short_answer",
+    "points": 25,
+    "options": [],
+    "correctAnswer": "Toy Story"
+  },
+  {
+    "id": 13,
+    "label": "Tebak Film 3",
+    "type": "short_answer",
+    "points": 25,
+    "options": [],
+    "correctAnswer": "Frozen"
+  },
+  {
+    "id": 14,
+    "label": "Tebak Film 4",
+    "type": "short_answer",
+    "points": 25,
+    "options": [],
+    "correctAnswer": "Up"
+  },
+  {
+    "id": 15,
+    "label": "Tebak Film 5",
+    "type": "short_answer",
+    "points": 25,
+    "options": [],
+    "correctAnswer": "Moana"
+  },
+    {
+    "id": 16,
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Take A Chance With Me.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
-    "id": 8,
+    "id": 17,
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "505.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
-    "id": 9,
+    "id": 18,
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Best Song Ever.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
-    "id": 10,
+    "id": 19,
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Golden Hour.mp3",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
-    "id": 11,
+    "id": 20,
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "A Whole New World.mp3",
@@ -79,7 +149,74 @@
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
-    "id": 8,
+    "id": 21,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": []
+  },
+  {
+    "id": 22,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": []
+  },
+  {
+    "id": 23,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": []
+  },
+  {
+    "id": 24,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": []
+  },
+  {
+    "id": 25,
+    "label": "Question 5 (Survey - siapa paling mungkin...)",
+    "type": "survey",
+    "points": 20,
+    "options": []
+  },
+  {
+    "id": 26,
+    "label": "Tebak Gaya 1",
+    "type": "short_answer",
+    "points": 40,
+    "options": [],
+    "correctAnswer": "Monyet Naik Motor"
+  },
+  {
+    "id": 27,
+    "label": "Tebak Gaya 2",
+    "type": "short_answer",
+    "points": 40,
+    "options": [],
+    "correctAnswer": "Dompet Hilang"
+  },
+  {
+    "id": 28,
+    "label": "Tebak Gaya 3",
+    "type": "short_answer",
+    "points": 40,
+    "options": [],
+    "correctAnswer": "Gajah Terbang"
+  },
+  {
+    "id": 29,
+    "label": "Tebak Gaya 1",
+    "type": "short_answer",
+    "points": 40,
+    "options": [],
+    "correctAnswer": "Ayam Bertelur"
+  },
+  {
+    "id": 30,
     "label": "Final Wager - Soal Terakhir",
     "type": "wager",
     "points": 0,
