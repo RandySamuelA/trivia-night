@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 260" width="340" height="260">
+  <rect width="340" height="260" fill="#14171d" rx="16"/>
+  <!-- Lawson Blue Shield/Card Background -->
+  <rect x="70" y="30" width="200" height="200" rx="16" fill="#006BB6"/>
+  <rect x="80" y="40" width="180" height="180" rx="12" fill="#0077CC" stroke="#FFFFFF" stroke-width="4"/>
+  <!-- White Milk Can Silhouette -->
+  <g transform="translate(170, 130) scale(0.95)">
+    <!-- Can Lid -->
+    <rect x="-24" y="-55" width="48" height="10" rx="3" fill="#FFFFFF"/>
+    <!-- Can Neck -->
+    <polygon points="-16,-45 16,-45 28,-25 -28,-25" fill="#FFFFFF"/>
+    <!-- Can Body -->
+    <rect x="-28" y="-25" width="56" height="70" rx="4" fill="#FFFFFF"/>
+    <!-- Can Handle -->
+    <path d="M -26,-25 C -45,-15 -45,15 -26,25" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 26,-25 C 45,-15 45,15 26,25" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+    <!-- Can Bottom Ring -->
+    <rect x="-30" y="42" width="60" height="8" rx="2" fill="#FFFFFF"/>
+  </g>
+</svg>

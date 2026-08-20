@@ -1,0 +1,48 @@
+{
+  "name": "Paket Santai - Cepat & Ringan",
+  "description": "5 soal singkat, cocok kalau waktu terbatas",
+  "questions": [
+    {
+      "id": 1,
+      "label": "Question 1",
+      "type": "multiple_choice",
+      "text": "Makanan apa yang paling identik jadi menu wajib acara piknik/BBQ?",
+      "points": 10,
+      "options": ["Sate", "Sushi", "Pizza", "Ramen"],
+      "correctAnswer": "Sate"
+    },
+    {
+      "id": 2,
+      "label": "Question 2",
+      "type": "true_false",
+      "text": "Air laut terasa asin karena kandungan garam (natrium klorida) di dalamnya.",
+      "points": 10,
+      "options": ["True", "False"],
+      "correctAnswer": "True"
+    },
+    {
+      "id": 3,
+      "label": "Question 3",
+      "type": "survey",
+      "text": "Siapa di grup ini yang paling mungkin lupa bawa charger pas liburan?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 4,
+      "label": "Tebak Lagu",
+      "type": "song_guess",
+      "text": "Tebak judul atau penyanyi lagu ini!",
+      "audioFile": "song1.mp3",
+      "tierPoints": [50, 40, 30, 20, 10]
+    },
+    {
+      "id": 5,
+      "label": "Final Wager - Soal Terakhir",
+      "type": "wager",
+      "text": "Soal bonus penentu juara! Pertaruhkan poinmu sebelum menjawab.",
+      "points": 0,
+      "options": []
+    }
+  ]
+}

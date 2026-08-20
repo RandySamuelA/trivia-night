@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 380" width="320" height="380">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <!-- Blue border -->
+    <polygon points="20,20 280,180 120,180 280,360 20,360" fill="#003580" stroke="#003580" stroke-width="12" stroke-linejoin="round"/>
+    <!-- Crimson body -->
+    <polygon points="26,26 266,176 110,176 266,354 26,354" fill="#DC143C"/>
+    <!-- Crescent Moon & Sun upper emblem -->
+    <path d="M 60,110 A 26,26 0 0,0 110,110 A 20,20 0 0,1 60,110" fill="#FFFFFF"/>
+    <circle cx="85" cy="116" r="8" fill="#FFFFFF"/>
+    <!-- Sun lower emblem -->
+    <circle cx="85" cy="270" r="18" fill="#FFFFFF"/>
+    <!-- Sun rays -->
+    <path d="M 85,244 L 85,296 M 59,270 L 111,270 M 67,252 L 103,288 M 67,288 L 103,252" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

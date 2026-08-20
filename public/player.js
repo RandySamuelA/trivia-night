@@ -19,7 +19,79 @@ function showScreen(name) {
 
 let myName = '';
 let myRoom = '';
+let myPlayerId = null;
 let currentAnswer = null;
+
+const SESSION_KEY = 'triviaNightSession';
+
+function saveSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ roomCode: myRoom, playerId: myPlayerId, name: myName }));
+  } catch (e) {
+    // localStorage unavailable (private browsing, etc.) - reconnect just won't
+    // auto-resume, everything else still works fine.
+  }
+}
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearSession() {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (e) {
+    // ignore
+  }
+}
+
+// ---------- Audio (Tebak Lagu plays on the player's own phone too) ----------
+// Mobile browsers block audio.play() unless it happens inside (or shortly
+// after) a real user gesture. We "unlock" the shared <audio> element the
+// moment the player taps Join - a real gesture - so later programmatic
+// play() calls triggered by server events (song:tier-start) are allowed for
+// the rest of this page session.
+let audioUnlocked = false;
+function unlockAudioPlayback() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  const audio = document.getElementById('player-song-audio');
+  const p = audio.play();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
+  audio.pause();
+}
+
+function playSongClip(audioFile, tierSeconds) {
+  const audio = document.getElementById('player-song-audio');
+  if (audioFile && !audio.src.endsWith('/audio/' + audioFile)) {
+    audio.src = `/audio/${audioFile}`;
+    audio.load();
+  }
+  clearTimeout(window.__playerSongStopTimer);
+  const start = () => {
+    audio.currentTime = 0;
+    const p = audio.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch((err) => {
+        // Autoplay can still be blocked on some phones/browsers despite the
+        // unlock attempt - that's OK, the shared host speaker is the main
+        // audio source anyway. Just don't bother the player with a popup.
+        if (err && err.name !== 'AbortError') console.warn('Audio di HP tidak bisa autoplay:', err);
+      });
+    }
+    window.__playerSongStopTimer = setTimeout(() => audio.pause(), tierSeconds * 1000);
+  };
+  if (audio.readyState >= 2) {
+    start();
+  } else {
+    audio.addEventListener('canplay', start, { once: true });
+  }
+}
 
 // Prefill room code from ?room= in URL
 const params = new URLSearchParams(window.location.search);
@@ -27,7 +99,30 @@ if (params.get('room')) {
   document.getElementById('input-room').value = params.get('room');
 }
 
+// If this browser already joined a room before (e.g. the screen locked, the
+// app was backgrounded to check WhatsApp, or Wi-Fi hiccuped), try to resume
+// that same seat automatically instead of showing the join screen again.
+// This runs on the very first connection AND every time Socket.IO's built-in
+// reconnection logic re-establishes the connection after a drop.
+socket.on('connect', () => {
+  const session = loadSession();
+  if (!session || !session.roomCode || !session.playerId) return;
+
+  socket.emit('player:rejoin', { roomCode: session.roomCode, playerId: session.playerId }, (res) => {
+    if (!res.ok) {
+      clearSession();
+      return; // stay on / fall back to the normal join screen
+    }
+    myName = res.name;
+    myRoom = session.roomCode;
+    myPlayerId = session.playerId;
+    // The server follows this ack with whichever screen matches the live
+    // game state (waiting / question / reveal / etc.) via its own events.
+  });
+});
+
 document.getElementById('btn-join').addEventListener('click', () => {
+  unlockAudioPlayback();
   const room = document.getElementById('input-room').value.trim();
   const name = document.getElementById('input-name').value.trim();
   const errorEl = document.getElementById('join-error');
@@ -45,20 +140,38 @@ document.getElementById('btn-join').addEventListener('click', () => {
     }
     myName = name;
     myRoom = room;
+    myPlayerId = res.playerId;
+    saveSession();
     document.getElementById('waiting-name').textContent = name;
     document.getElementById('waiting-room').textContent = room;
     showScreen('waiting');
   });
 });
 
-socket.on('game:started', () => {
-  // handled by question:show which follows immediately
+// Sent by the server right after a successful player:rejoin, for whichever
+// phase doesn't have a more specific "catch up" event (lobby / between
+// questions) - just parks them back on the normal waiting screen.
+socket.on('rejoin:show-waiting', () => {
+  currentAnswer = null;
+  document.getElementById('waiting-name').textContent = myName;
+  document.getElementById('waiting-room').textContent = myRoom;
+  document.querySelector('#screen-waiting .status-msg').textContent = 'Waiting Host...';
+  showScreen('waiting');
+});
+
+// Sent by the server on reconnect if this player already answered the
+// current question before disconnecting - skips straight to "submitted" so
+// they can't (and don't need to) answer again.
+socket.on('rejoin:show-submitted', () => {
+  currentAnswer = 'RESUMED';
+  showScreen('submitted');
 });
 
 let myWager = null;
 
 socket.on('wager:collect-start', (data) => {
   myWager = null;
+  document.getElementById('wager-text').textContent = data.text || '';
   document.getElementById('wager-current-score').textContent = data.yourScore;
   document.getElementById('wager-input').value = '';
   document.getElementById('wager-error').textContent = '';
@@ -89,24 +202,38 @@ document.getElementById('btn-submit-wager').addEventListener('click', () => {
   });
 });
 
-socket.on('song:ready', () => {
+let currentSongText = '';
+
+socket.on('song:ready', (data) => {
   currentAnswer = null;
+  currentSongText = data.text || '';
+  document.getElementById('song-wait-text').textContent = currentSongText;
+  if (data.audioFile) {
+    const audio = document.getElementById('player-song-audio');
+    audio.src = `/audio/${data.audioFile}`;
+    audio.load();
+  }
   showScreen('songWait');
 });
 
 socket.on('song:tier-start', (data) => {
   if (currentAnswer !== null) return; // already answered, stay on submitted screen
+  document.getElementById('song-answer-text').textContent = currentSongText;
   document.getElementById('song-tier-info').textContent =
     `Tier ${data.tier} detik — jawab sekarang untuk dapat ${data.points} poin!`;
   document.getElementById('song-answer-input').value = '';
   document.getElementById('btn-submit-song').disabled = false;
   showScreen('songAnswer');
+  playSongClip(data.audioFile, data.tier);
 });
 
 document.getElementById('btn-submit-song').addEventListener('click', () => {
   const val = document.getElementById('song-answer-input').value.trim();
   if (!val || currentAnswer !== null) return;
   document.getElementById('btn-submit-song').disabled = true;
+  const audio = document.getElementById('player-song-audio');
+  audio.pause();
+  clearTimeout(window.__playerSongStopTimer);
   submitAnswer(val, null, null);
 });
 
@@ -122,6 +249,29 @@ socket.on('question:show', (q) => {
   } else {
     document.getElementById('q-points').textContent = q.points > 0 ? `${q.points} poin` : 'Survey';
     wagerNote.style.display = 'none';
+  }
+
+  const titleEl = document.getElementById('q-title');
+  const pptHintEl = document.getElementById('q-ppt-hint');
+  if (q.text) {
+    titleEl.textContent = q.text;
+    pptHintEl.style.display = 'none';
+  } else {
+    titleEl.textContent = 'Pilih jawabanmu';
+    pptHintEl.style.display = 'block';
+  }
+
+  const imgWrap = document.getElementById('q-image-wrap');
+  const imgEl = document.getElementById('q-image');
+  const imageSrc = q.image || q.imageFile;
+  if (imgWrap && imgEl) {
+    if (imageSrc) {
+      imgEl.src = imageSrc.startsWith('http') || imageSrc.startsWith('/') ? imageSrc : `/images/${imageSrc}`;
+      imgWrap.style.display = 'flex';
+    } else {
+      imgWrap.style.display = 'none';
+      imgEl.src = '';
+    }
   }
 
   const mcWrap = document.getElementById('q-mc-wrap');

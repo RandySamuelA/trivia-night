@@ -1,0 +1,75 @@
+{
+  "name": "Paket Umum - Liburan Bareng Teman",
+  "description": "8 soal campuran (pengetahuan umum, short answer, survey, tebak lagu, taruhan akhir)",
+  "questions": [
+    {
+      "id": 1,
+      "label": "Question 1",
+      "type": "multiple_choice",
+      "text": "Planet apa yang paling terkenal punya cincin di tata surya kita?",
+      "points": 10,
+      "options": ["Mars", "Saturnus", "Neptunus", "Venus"],
+      "correctAnswer": "Saturnus"
+    },
+    {
+      "id": 2,
+      "label": "Question 2",
+      "type": "true_false",
+      "text": "Ibu kota Australia adalah Sydney.",
+      "points": 10,
+      "options": ["True", "False"],
+      "correctAnswer": "False"
+    },
+    {
+      "id": 3,
+      "label": "Question 3",
+      "type": "multiple_choice",
+      "text": "Hewan apa yang dikenal sebagai satu-satunya mamalia yang bisa benar-benar terbang?",
+      "points": 20,
+      "options": ["Tupai Terbang", "Kelelawar", "Sugar Glider", "Burung Kiwi"],
+      "correctAnswer": "Kelelawar"
+    },
+    {
+      "id": 4,
+      "label": "Question 4",
+      "type": "short_answer",
+      "text": "Siapa nama proklamator kemerdekaan Indonesia yang juga menjadi presiden pertama RI?",
+      "points": 20,
+      "options": [],
+      "correctAnswer": "Soekarno"
+    },
+    {
+      "id": 5,
+      "label": "Question 5",
+      "type": "survey",
+      "text": "Siapa di grup ini yang paling mungkin ketiduran duluan saat nonton bareng malam ini?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 6,
+      "label": "Question 6",
+      "type": "multiple_choice",
+      "text": "Kalau warna biru dicampur warna kuning, jadi warna apa?",
+      "points": 40,
+      "options": ["Ungu", "Hijau", "Oranye", "Merah Muda"],
+      "correctAnswer": "Hijau"
+    },
+    {
+      "id": 7,
+      "label": "Tebak Lagu",
+      "type": "song_guess",
+      "text": "Tebak judul atau penyanyi lagu ini!",
+      "audioFile": "song1.mp3",
+      "tierPoints": [50, 40, 30, 20, 10]
+    },
+    {
+      "id": 8,
+      "label": "Final Wager - Soal Terakhir",
+      "type": "wager",
+      "text": "Soal bonus penentu juara! Pertaruhkan poinmu sebelum menjawab.",
+      "points": 0,
+      "options": []
+    }
+  ]
+}

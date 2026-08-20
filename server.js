@@ -5,6 +5,7 @@ const QRCode = require('qrcode');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,20 +13,56 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const DEFAULT_TIER_POINTS = [50, 40, 30, 20, 10];
+// How long a disconnected player's spot is held before they're removed for
+// good. Generous on purpose - covers a phone locking, switching to WhatsApp,
+// a Wi-Fi hiccup, etc. without losing their score/progress.
+const RECONNECT_GRACE_MS = 10 * 60 * 1000; // 10 minutes
 
-// ---------- Load question bank ----------
-function loadQuestions() {
-  const raw = fs.readFileSync(path.join(__dirname, 'questions.json'), 'utf-8');
-  return JSON.parse(raw);
+// ---------- Load question packs ----------
+const PACKS_DIR = path.join(__dirname, 'packs');
+
+function listPacks() {
+  const files = fs.readdirSync(PACKS_DIR).filter((f) => f.endsWith('.json'));
+  return files.map((f) => {
+    const id = f.replace(/\.json$/, '');
+    const data = JSON.parse(fs.readFileSync(path.join(PACKS_DIR, f), 'utf-8'));
+    const isArray = Array.isArray(data);
+    const questions = isArray ? data : (Array.isArray(data.questions) ? data.questions : []);
+    return {
+      id,
+      name: (!isArray && data.name) ? data.name : id,
+      description: (!isArray && data.description) ? data.description : '',
+      questionCount: questions.length,
+    };
+  });
+}
+
+function loadPack(packId) {
+  const filePath = path.join(PACKS_DIR, `${packId}.json`);
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  const isArray = Array.isArray(data);
+  return {
+    name: (!isArray && data.name) ? data.name : packId,
+    questions: isArray ? data : (data.questions || [])
+  };
+}
+
+function generatePlayerId() {
+  return crypto.randomBytes(8).toString('hex');
 }
 
 // ---------- In-memory state ----------
 // rooms[code] = {
-//   code, hostSocketId,
+//   code, hostSocketId, packId,
 //   state: 'lobby'|'question'|'wager-collect'|'wager-question'|'song-ready'|'song-tier'|'reveal'|'ended',
 //   questions, currentIndex, songTier,
-//   players: Map(socketId -> {name, score, answer, correct, matches, wager, wagerWin, songTier}),
+//   players: Map(playerId -> {name, score, answer, correct, matches, wager, wagerWin,
+//                              songTier, connected, disconnectTimer}),
 // }
+// Players are keyed by a stable playerId (NOT socket.id) so a phone that
+// reconnects with a brand new socket.id (after locking, backgrounding, or a
+// network blip) can be matched back to the same player record instead of
+// being treated as someone new.
 const rooms = {};
 
 function generateRoomCode() {
@@ -48,7 +85,8 @@ function getLanIp() {
 
 // Full, host-only view of every player - includes their live answer text so
 // the host can see, in real time, exactly what each player has typed/picked
-// for the current question, across every question type.
+// for the current question, across every question type - plus their
+// connection status so the host knows if someone's phone dropped.
 function publicPlayerList(room) {
   return Array.from(room.players.entries()).map(([id, p]) => ({
     id,
@@ -56,6 +94,7 @@ function publicPlayerList(room) {
     score: p.score,
     submitted: p.answer !== null,
     answer: p.answer,
+    connected: p.connected !== false,
   }));
 }
 
@@ -80,7 +119,7 @@ function normalizeAnswer(str) {
     .trim();
 }
 
-// For "survey" questions, the vote options are NOT hardcoded in questions.json -
+// For "survey" questions, the vote options are NOT hardcoded in the pack -
 // they are generated live from whoever has actually joined the room, so the
 // list always matches the real players at the table.
 function getQuestionOptions(q, room) {
@@ -95,10 +134,13 @@ function getTierPoints(q) {
 }
 
 function questionForPlayer(q, room) {
-  // Players never see the question text/title (that's on the PowerPoint).
-  // They only see the answer input matching the question type.
+  // Question text is shown to players too. If a pack omits `text`, this
+  // stays undefined and the client falls back to a generic heading - so
+  // older/custom packs without it still work fine.
   return {
     type: q.type,
+    text: q.text,
+    image: q.image || q.imageFile || null,
     options: getQuestionOptions(q, room),
     points: q.points,
   };
@@ -122,7 +164,7 @@ function advanceToCurrentQuestion(room) {
   if (q.type === 'wager') {
     room.state = 'wager-collect';
     for (const [id, p] of room.players.entries()) {
-      io.to(id).emit('wager:collect-start', { yourScore: p.score });
+      io.to(id).emit('wager:collect-start', { yourScore: p.score, text: q.text });
     }
     io.to(room.hostSocketId).emit('host:wager-collect-start', {
       number: room.currentIndex + 1,
@@ -137,6 +179,8 @@ function advanceToCurrentQuestion(room) {
     io.to(room.code).emit('song:ready', {
       number: room.currentIndex + 1,
       total: room.questions.length,
+      text: q.text,
+      audioFile: q.audioFile,
     });
     io.to(room.hostSocketId).emit('host:song-ready', {
       number: room.currentIndex + 1,
@@ -165,6 +209,69 @@ function advanceToCurrentQuestion(room) {
   }
 }
 
+// Re-sends whatever the room's current phase would normally show a freshly
+// arriving player, so a reconnecting player's screen "catches up" to the
+// live game state instead of getting stuck on the join screen.
+function sendCurrentPhaseTo(socket, room, player) {
+  const alreadyAnswered =
+    player.answer !== null && ['question', 'wager-question', 'song-tier'].includes(room.state);
+  if (alreadyAnswered) {
+    socket.emit('rejoin:show-submitted');
+    return;
+  }
+
+  const q = room.currentIndex >= 0 ? currentQuestion(room) : null;
+  switch (room.state) {
+    case 'lobby':
+      socket.emit('rejoin:show-waiting');
+      break;
+    case 'question':
+      socket.emit('question:show', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        ...questionForPlayer(q, room),
+      });
+      break;
+    case 'wager-collect':
+      socket.emit('wager:collect-start', { yourScore: player.score, text: q.text });
+      break;
+    case 'wager-question':
+      socket.emit('question:show', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        type: 'wager',
+        text: q.text,
+        options: [],
+        points: 0,
+        yourWager: player.wager,
+      });
+      break;
+    case 'song-ready':
+      socket.emit('song:ready', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        text: q.text,
+        audioFile: q.audioFile,
+      });
+      break;
+    case 'song-tier':
+      socket.emit('song:tier-start', {
+        tier: room.songTier,
+        points: getTierPoints(q)[room.songTier - 1],
+        audioFile: q.audioFile,
+      });
+      break;
+    case 'reveal':
+      socket.emit('rejoin:show-waiting');
+      break;
+    case 'ended':
+      socket.emit('game:ended', { leaderboard: leaderboard(room) });
+      break;
+    default:
+      socket.emit('rejoin:show-waiting');
+  }
+}
+
 // ---------- Static files ----------
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -181,13 +288,34 @@ app.get('/healthz', (req, res) => {
 // ---------- Socket.IO ----------
 io.on('connection', (socket) => {
   // ---- HOST EVENTS ----
-  socket.on('host:create-room', (_data, cb) => {
+  socket.on('host:list-packs', (_data, cb) => {
+    try {
+      cb({ ok: true, packs: listPacks() });
+    } catch (err) {
+      cb({ ok: false, error: 'Gagal membaca folder packs/.', packs: [] });
+    }
+  });
+
+  socket.on('host:create-room', ({ packId } = {}, cb) => {
+    let packs;
+    try {
+      packs = listPacks();
+    } catch (err) {
+      return cb({ ok: false, error: 'Gagal membaca folder packs/.' });
+    }
+    if (packs.length === 0) {
+      return cb({ ok: false, error: 'Tidak ada paket soal ditemukan di folder packs/.' });
+    }
+    const chosenId = packs.some((p) => p.id === packId) ? packId : packs[0].id;
+    const pack = loadPack(chosenId);
+
     const code = generateRoomCode();
     const room = {
       code,
       hostSocketId: socket.id,
       state: 'lobby',
-      questions: loadQuestions(),
+      packId: chosenId,
+      questions: pack.questions,
       currentIndex: -1,
       songTier: 0,
       players: new Map(),
@@ -215,6 +343,7 @@ io.on('connection', (socket) => {
         joinUrl,
         qrDataUrl: err ? null : qrDataUrl,
         totalQuestions: room.questions.length,
+        packName: pack.name,
       });
     });
   });
@@ -241,6 +370,15 @@ io.on('connection', (socket) => {
     if (q.type === 'wager' || q.type === 'song_guess') return; // these use their own finalize events
     room.state = 'reveal';
 
+    // If the question pack already has a preset correctAnswer (multiple_choice
+    // / true_false), use that automatically - the host doesn't have to pick
+    // it manually. Falls back to whatever the host selected on the dashboard
+    // for older/custom questions that don't have a preset key.
+    const hasPresetKey = q.correctAnswer !== undefined && q.correctAnswer !== null && q.correctAnswer !== '';
+    const finalCorrectAnswer = q.type === 'short_answer'
+      ? q.correctAnswer
+      : (hasPresetKey ? q.correctAnswer : correctAnswer);
+
     if (q.type === 'survey') {
       // Group players by the target they voted for. Everyone whose vote
       // matches at least one other player's vote earns points - once per
@@ -264,7 +402,7 @@ io.on('connection', (socket) => {
         p.score += matches * q.points;
       }
     } else if (q.type === 'short_answer') {
-      const key = normalizeAnswer(q.correctAnswer);
+      const key = normalizeAnswer(finalCorrectAnswer);
       for (const p of room.players.values()) {
         const isCorrect = p.answer !== null && normalizeAnswer(p.answer) === key;
         p.correct = isCorrect;
@@ -272,7 +410,7 @@ io.on('connection', (socket) => {
       }
     } else {
       for (const p of room.players.values()) {
-        const isCorrect = p.answer === correctAnswer;
+        const isCorrect = p.answer === finalCorrectAnswer;
         p.correct = isCorrect;
         if (isCorrect) p.score += q.points;
       }
@@ -284,7 +422,7 @@ io.on('connection', (socket) => {
     // Send each player their own result
     for (const [id, p] of room.players.entries()) {
       io.to(id).emit('question:reveal', {
-        correctAnswer: q.type === 'survey' ? null : (q.type === 'short_answer' ? q.correctAnswer : correctAnswer),
+        correctAnswer: q.type === 'survey' ? null : finalCorrectAnswer,
         yourAnswer: p.answer,
         yourResult: q.type === 'survey' ? null : p.correct,
         yourMatches: q.type === 'survey' ? p.matches : undefined,
@@ -320,6 +458,7 @@ io.on('connection', (socket) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     if (room.state !== 'wager-collect') return;
+    const q = currentQuestion(room);
     // Anyone who didn't place a bet defaults to a wager of 0 (can't win/lose points).
     for (const p of room.players.values()) {
       if (p.wager === null || p.wager === undefined) p.wager = 0;
@@ -330,6 +469,7 @@ io.on('connection', (socket) => {
         number: room.currentIndex + 1,
         total: room.questions.length,
         type: 'wager',
+        text: q.text,
         options: [],
         points: 0,
         yourWager: p.wager,
@@ -399,8 +539,9 @@ io.on('connection', (socket) => {
     const points = getTierPoints(q)[t - 1];
 
     // Broadcast to the room - players who already answered simply ignore this
-    // (their screen stays on "answer submitted").
-    io.to(room.code).emit('song:tier-start', { tier: t, points });
+    // (their screen stays on "answer submitted"). Each player's own phone
+    // also plays the same clip, capped to the same tier duration as the host.
+    io.to(room.code).emit('song:tier-start', { tier: t, points, audioFile: q.audioFile });
 
     const submittedCount = Array.from(room.players.values()).filter((p) => p.answer !== null).length;
     io.to(room.hostSocketId).emit('host:song-tier-update', {
@@ -469,22 +610,52 @@ io.on('connection', (socket) => {
     );
     if (nameTaken) return cb({ ok: false, error: 'Nama sudah dipakai peserta lain.' });
 
-    room.players.set(socket.id, {
+    const playerId = generatePlayerId();
+    room.players.set(playerId, {
       name: trimmed, score: 0, answer: null, correct: false, matches: 0,
-      wager: null, wagerWin: null, songTier: null,
+      wager: null, wagerWin: null, songTier: null, connected: true, disconnectTimer: null,
     });
     socket.join(roomCode);
+    socket.join(playerId);
     socket.data.roomCode = roomCode;
+    socket.data.playerId = playerId;
     socket.data.isHost = false;
 
-    cb({ ok: true });
+    cb({ ok: true, playerId });
     io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
+  });
+
+  // A player's browser reconnected (screen unlocked, came back from
+  // WhatsApp, Wi-Fi blip, etc.) and is presenting the playerId it saved from
+  // its original join, asking to resume the same seat instead of starting
+  // over as a brand new player.
+  socket.on('player:rejoin', ({ roomCode, playerId }, cb) => {
+    const room = rooms[roomCode];
+    if (!room) return cb({ ok: false, error: 'Room sudah tidak ada.' });
+    const p = room.players.get(playerId);
+    if (!p) return cb({ ok: false, error: 'Sesi sudah berakhir, silakan join lagi.' });
+
+    if (p.disconnectTimer) {
+      clearTimeout(p.disconnectTimer);
+      p.disconnectTimer = null;
+    }
+    p.connected = true;
+
+    socket.join(roomCode);
+    socket.join(playerId);
+    socket.data.roomCode = roomCode;
+    socket.data.playerId = playerId;
+    socket.data.isHost = false;
+
+    cb({ ok: true, name: p.name, score: p.score });
+    io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
+    sendCurrentPhaseTo(socket, room, p);
   });
 
   socket.on('player:submit-wager', ({ amount }, cb) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.state !== 'wager-collect') return cb && cb({ ok: false, error: 'Bukan waktunya bertaruh.' });
-    const p = room.players.get(socket.id);
+    const p = room.players.get(socket.data.playerId);
     if (!p) return cb && cb({ ok: false });
     if (p.wager !== null && p.wager !== undefined) return cb && cb({ ok: false, error: 'Taruhan sudah dikirim.' });
     const amt = Math.floor(Number(amount));
@@ -507,7 +678,7 @@ io.on('connection', (socket) => {
     if (!room || !['question', 'wager-question', 'song-tier'].includes(room.state)) {
       return cb && cb({ ok: false });
     }
-    const p = room.players.get(socket.id);
+    const p = room.players.get(socket.data.playerId);
     if (!p || p.answer !== null) return cb && cb({ ok: false });
     p.answer = answer;
     if (room.state === 'song-tier') p.songTier = room.songTier;
@@ -554,13 +725,33 @@ io.on('connection', (socket) => {
     const roomCode = socket.data.roomCode;
     const room = rooms[roomCode];
     if (!room) return;
+
     if (socket.data.isHost) {
       // Host disconnected - notify players (room stays alive briefly in case of reconnect)
       io.to(room.code).emit('host:disconnected');
-    } else if (room.players.has(socket.id)) {
-      room.players.delete(socket.id);
-      io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
+      return;
     }
+
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    const p = room.players.get(playerId);
+    if (!p) return;
+
+    // Don't remove the player immediately - their phone might just be
+    // locked or they switched apps for a minute. Mark them as disconnected
+    // (host sees a "terputus" badge) and hold their seat + score for a grace
+    // period in case they come back via player:rejoin.
+    p.connected = false;
+    io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
+
+    if (p.disconnectTimer) clearTimeout(p.disconnectTimer);
+    p.disconnectTimer = setTimeout(() => {
+      const stillThere = room.players.get(playerId);
+      if (stillThere && !stillThere.connected) {
+        room.players.delete(playerId);
+        io.to(room.hostSocketId).emit('host:player-list', publicPlayerList(room));
+      }
+    }, RECONNECT_GRACE_MS);
   });
 });
 

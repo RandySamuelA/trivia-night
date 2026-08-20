@@ -20,10 +20,20 @@
   </div>
 </div>
 
+<!-- WAITING SCREEN -->
+<div id="screen-waiting" class="screen">
+  <div class="card">
+    <h1>Hai, <span id="waiting-name"></span> 👋</h1>
+    <p class="status-msg pulse">Waiting Host...</p>
+    <p class="hint">Room <span id="waiting-room"></span></p>
+  </div>
+</div>
+
 <!-- SONG GUESS: WAITING FOR HOST TO PLAY -->
 <div id="screen-song-wait" class="screen">
   <div class="card">
     <h1>🎵 Tebak Lagu!</h1>
+    <p class="hint" id="song-wait-text"></p>
     <p class="status-msg pulse">Dengarkan baik-baik... Menunggu host memutar lagunya.</p>
   </div>
 </div>
@@ -32,6 +42,7 @@
 <div id="screen-song-answer" class="screen">
   <div class="card">
     <h1>🎵 Tebak Lagunya!</h1>
+    <p class="hint" id="song-answer-text"></p>
     <p class="hint" id="song-tier-info"></p>
     <input type="text" id="song-answer-input" placeholder="Judul lagu / penyanyi..." maxlength="80" />
     <button class="btn-primary" id="btn-submit-song">Submit</button>
@@ -42,6 +53,7 @@
 <div id="screen-wager-bet" class="screen">
   <div class="card">
     <h1>🎲 Ronde Taruhan Akhir!</h1>
+    <p class="hint" id="wager-text"></p>
     <p class="hint">Skor kamu sekarang</p>
     <div class="room-code" id="wager-current-score" style="font-size:2.2rem;"></div>
     <p class="hint">Berapa poin mau kamu pertaruhkan? Kalau BENAR nanti dapat 2x lipat, kalau SALAH poin ini hilang.</p>
@@ -51,22 +63,14 @@
   </div>
 </div>
 
-<!-- WAITING SCREEN -->
-<div id="screen-waiting" class="screen">
-  <div class="card">
-    <h1>Hai, <span id="waiting-name"></span> 👋</h1>
-    <p class="status-msg pulse">Waiting Host...</p>
-    <p class="hint">Room <span id="waiting-room"></span></p>
-  </div>
-</div>
-
 <!-- QUESTION SCREEN -->
 <div id="screen-question" class="screen">
   <div class="card">
     <div class="q-meta">Question <span id="q-number"></span> / <span id="q-total"></span><span class="points-tag" id="q-points"></span></div>
     <div id="q-wager-note" class="hint" style="display:none;"></div>
-    <h1>Pilih jawabanmu</h1>
-    <p class="hint">Lihat soal di layar TV / laptop host</p>
+    <h1 id="q-title">Pilih jawabanmu</h1>
+    <p class="hint" id="q-ppt-hint">Lihat soal di layar TV / laptop host</p>
+    <div class="q-image-wrap" id="q-image-wrap" style="display:none;"><img id="q-image" src="" alt="Gambar Soal" /></div>
     <div id="q-mc-wrap" class="answer-grid" style="display:none;"></div>
     <div id="q-text-wrap" style="display:none;">
       <input type="text" id="q-text-input" placeholder="Ketik jawabanmu..." maxlength="80" />
@@ -105,6 +109,8 @@
     <div id="final-leaderboard" class="leaderboard-list"></div>
   </div>
 </div>
+
+<audio id="player-song-audio" preload="auto"></audio>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="player.js"></script>

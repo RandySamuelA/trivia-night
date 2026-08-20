@@ -1,0 +1,336 @@
+{
+  "name": "Paket General - Trivia Lengkap",
+  "description": "30 soal seru (Warmup, Tebak Gambar, Tebak Logo, Tebak Film Emoji, Tebak Lagu, Survey, Tebak Gaya, dan Final Wager)",
+  "questions": [
+    {
+      "id": 1,
+      "label": "Warmup Question 1",
+      "type": "multiple_choice",
+      "text": "Planet terbesar di tata surya kita adalah...",
+      "points": 10,
+      "options": [
+        "A. Bumi",
+        "B. Saturnus",
+        "C. Jupiter",
+        "D. Mars"
+      ],
+      "correctAnswer": "C. Jupiter"
+    },
+    {
+      "id": 2,
+      "label": "Warmup Question 2",
+      "type": "multiple_choice",
+      "text": "Mata uang resmi dari negara Jepang adalah...",
+      "points": 10,
+      "options": [
+        "A. Yen",
+        "B. Yuan",
+        "C. Won",
+        "D. Dollar"
+      ],
+      "correctAnswer": "A. Yen"
+    },
+    {
+      "id": 3,
+      "label": "Warmup Question 3",
+      "type": "multiple_choice",
+      "text": "Berapa jumlah benua di dunia?",
+      "points": 10,
+      "options": [
+        "A. 5",
+        "B. 6",
+        "C. 7",
+        "D. 8"
+      ],
+      "correctAnswer": "C. 7"
+    },
+    {
+      "id": 4,
+      "label": "Warmup Question 4",
+      "type": "multiple_choice",
+      "text": "Ibu kota dari negara Australia adalah...",
+      "points": 10,
+      "options": [
+        "A. Sydney",
+        "B. Melbourne",
+        "C. Canberra",
+        "D. Perth"
+      ],
+      "correctAnswer": "C. Canberra"
+    },
+    {
+      "id": 5,
+      "label": "Warmup Question 5",
+      "type": "multiple_choice",
+      "text": "Negara dengan jumlah pulau paling banyak di dunia adalah...",
+      "points": 10,
+      "options": [
+        "A. Indonesia",
+        "B. Swedia",
+        "C. Jepang",
+        "D. Filipina"
+      ],
+      "correctAnswer": "B. Swedia"
+    },
+    {
+      "id": 6,
+      "label": "Tebak Gambar 1",
+      "type": "multiple_choice",
+      "text": "Tebak bendera negara pada gambar ini!",
+      "image": "tebak-gambar-1.svg",
+      "points": 20,
+      "options": [
+        "A. Inggris",
+        "B. Swiss",
+        "C. Greenland",
+        "D. Georgia"
+      ],
+      "correctAnswer": "B. Swiss"
+    },
+    {
+      "id": 7,
+      "label": "Tebak Gambar 2",
+      "type": "multiple_choice",
+      "text": "Tebak bendera negara pada gambar ini!",
+      "image": "tebak-gambar-2.svg",
+      "points": 20,
+      "options": [
+        "A. Nepal",
+        "B. Vatikan",
+        "C. Bhutan",
+        "D. Afrika Selatan"
+      ],
+      "correctAnswer": "A. Nepal"
+    },
+    {
+      "id": 8,
+      "label": "Tebak Logo 1",
+      "type": "short_answer",
+      "text": "Tebak logo pada gambar ini!",
+      "image": "tebak-logo-1.svg",
+      "points": 20,
+      "options": [],
+      "correctAnswer": "Garuda Indonesia"
+    },
+    {
+      "id": 9,
+      "label": "Tebak Logo 2",
+      "type": "short_answer",
+      "text": "Tebak logo pada gambar ini!",
+      "image": "tebak-logo-2.svg",
+      "points": 20,
+      "options": [],
+      "correctAnswer": "Chevrolet"
+    },
+    {
+      "id": 10,
+      "label": "Tebak Logo 3",
+      "type": "short_answer",
+      "text": "Tebak logo pada gambar ini!",
+      "image": "tebak-logo-3.svg",
+      "points": 20,
+      "options": [],
+      "correctAnswer": "Lawson"
+    },
+    {
+      "id": 11,
+      "label": "Tebak Film 1",
+      "type": "short_answer",
+      "text": "Tebak judul film animasi berdasarkan emoji: 👧 🧠 😄 😢 😡 🤢 😨",
+      "points": 25,
+      "options": [],
+      "correctAnswer": "Inside Out"
+    },
+    {
+      "id": 12,
+      "label": "Tebak Film 2",
+      "type": "short_answer",
+      "text": "Tebak judul film animasi berdasarkan emoji: 🤠 🚀 🦖 🥔 🐶 🧸",
+      "points": 25,
+      "options": [],
+      "correctAnswer": "Toy Story"
+    },
+    {
+      "id": 13,
+      "label": "Tebak Film 3",
+      "type": "short_answer",
+      "text": "Tebak judul film animasi berdasarkan emoji: ❄️ 👸🏼 ⛄ 🏰 👭 🦌",
+      "points": 25,
+      "options": [],
+      "correctAnswer": "Frozen"
+    },
+    {
+      "id": 14,
+      "label": "Tebak Film 4",
+      "type": "short_answer",
+      "text": "Tebak judul film animasi berdasarkan emoji: 🎈 🎈 🏠 👴 👦 🐕 🍫",
+      "points": 25,
+      "options": [],
+      "correctAnswer": "Up"
+    },
+    {
+      "id": 15,
+      "label": "Tebak Film 5",
+      "type": "short_answer",
+      "text": "Tebak judul film animasi berdasarkan emoji: 🌊 ⛵ 👧🏽",
+      "points": 25,
+      "options": [],
+      "correctAnswer": "Moana"
+    },
+    {
+      "id": 16,
+      "label": "Tebak Lagu 1",
+      "type": "song_guess",
+      "text": "Tebak judul lagu ini!",
+      "audioFile": "Take A Chance With Me.mp3",
+      "tierPoints": [
+        50,
+        40,
+        30,
+        20,
+        10
+      ]
+    },
+    {
+      "id": 17,
+      "label": "Tebak Lagu 2",
+      "type": "song_guess",
+      "text": "Tebak judul lagu ini!",
+      "audioFile": "505.mp3",
+      "tierPoints": [
+        50,
+        40,
+        30,
+        20,
+        10
+      ]
+    },
+    {
+      "id": 18,
+      "label": "Tebak Lagu 3",
+      "type": "song_guess",
+      "text": "Tebak judul lagu ini!",
+      "audioFile": "Best Song Ever.mp3",
+      "tierPoints": [
+        50,
+        40,
+        30,
+        20,
+        10
+      ]
+    },
+    {
+      "id": 19,
+      "label": "Tebak Lagu 4",
+      "type": "song_guess",
+      "text": "Tebak judul lagu ini!",
+      "audioFile": "Golden Hour.mp3",
+      "tierPoints": [
+        50,
+        40,
+        30,
+        20,
+        10
+      ]
+    },
+    {
+      "id": 20,
+      "label": "Tebak Lagu 5",
+      "type": "song_guess",
+      "text": "Tebak judul lagu!",
+      "audioFile": "A Whole New World.mp3",
+      "tierPoints": [
+        50,
+        40,
+        30,
+        20,
+        10
+      ]
+    },
+    {
+      "id": 21,
+      "label": "Survey Fun 1",
+      "type": "survey",
+      "text": "Siapa di antara kita yang paling mungkin ketiduran duluan saat lagi nongkrong atau nonton bareng?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 22,
+      "label": "Survey Fun 2",
+      "type": "survey",
+      "text": "Siapa di grup ini yang paling sering ngaret / telat kalau diajak janjian?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 23,
+      "label": "Survey Fun 3",
+      "type": "survey",
+      "text": "Siapa yang paling boros atau gampang checkout belanjaan pas lagi liburan/jalan bareng?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 24,
+      "label": "Survey Fun 4",
+      "type": "survey",
+      "text": "Siapa yang paling tidak bisa lepas dari HP dan paling rajin bikin story / update medsos?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 25,
+      "label": "Survey Fun 5",
+      "type": "survey",
+      "text": "Siapa yang paling jago bikin suasana jadi ramai, seru, dan heboh?",
+      "points": 20,
+      "options": []
+    },
+    {
+      "id": 26,
+      "label": "Tebak Gaya 1",
+      "type": "short_answer",
+      "text": "Tebak gerakan/gaya yang diperagakan oleh peraga di depan! (Ketik tebakanmu)",
+      "points": 40,
+      "options": [],
+      "correctAnswer": "Monyet Naik Motor"
+    },
+    {
+      "id": 27,
+      "label": "Tebak Gaya 2",
+      "type": "short_answer",
+      "text": "Tebak gerakan/gaya yang diperagakan oleh peraga di depan! (Ketik tebakanmu)",
+      "points": 40,
+      "options": [],
+      "correctAnswer": "Dompet Hilang"
+    },
+    {
+      "id": 28,
+      "label": "Tebak Gaya 3",
+      "type": "short_answer",
+      "text": "Tebak gerakan/gaya yang diperagakan oleh peraga di depan! (Ketik tebakanmu)",
+      "points": 40,
+      "options": [],
+      "correctAnswer": "Gajah Terbang"
+    },
+    {
+      "id": 29,
+      "label": "Tebak Gaya 4",
+      "type": "short_answer",
+      "text": "Tebak gerakan/gaya yang diperagakan oleh peraga di depan! (Ketik tebakanmu)",
+      "points": 40,
+      "options": [],
+      "correctAnswer": "Ayam Bertelur"
+    },
+    {
+      "id": 30,
+      "label": "Final Wager - Soal Terakhir",
+      "type": "wager",
+      "text": "Soal penentu juara! Pertaruhkan poinmu sebelum menjawab. Soal: Negara manakah yang memiliki menara miring Pisa? (Jawaban: Italia)",
+      "points": 0,
+      "options": [],
+      "correctAnswer": "Italia"
+    }
+  ]
+}

@@ -17,7 +17,9 @@
   <div class="card">
     <h1>🎛️ Host Dashboard</h1>
     <h2>Vacation Trivia Night</h2>
-    <button class="btn-primary" id="btn-create-room">Buat Room Baru</button>
+    <p class="hint" style="text-align:left;">Pilih paket soal:</p>
+    <div class="pack-list" id="pack-list"></div>
+    <button class="btn-primary" id="btn-create-room" disabled>Buat Room Baru</button>
     <p class="hint">Buka halaman ini di laptop kamu sebagai host. Pastikan HP peserta terhubung ke Wi-Fi yang sama.</p>
   </div>
 </div>
@@ -29,6 +31,7 @@
     <div class="room-code" id="lobby-room-code"></div>
     <div class="qr-wrap"><img id="lobby-qr" src="" alt="QR Code" /></div>
     <div class="join-url" id="lobby-join-url"></div>
+    <p class="hint" id="lobby-pack-name"></p>
     <h2 id="lobby-player-count">0 peserta bergabung</h2>
     <ul class="player-list" id="lobby-player-list"></ul>
     <button class="btn-primary" id="btn-start-game" disabled>Start Game</button>
@@ -41,16 +44,16 @@
   <div class="card">
     <div class="q-meta">Question <span id="game-q-number"></span> / <span id="game-q-total"></span><span class="points-tag" id="game-q-points"></span></div>
     <h1 id="game-q-type-label"></h1>
+    <p class="hint" id="game-q-text"></p>
+    <div class="q-image-wrap" id="game-q-image-wrap" style="display:none;"><img id="game-q-image" src="" alt="Gambar Soal" /></div>
     <h2 id="game-submit-count">0 / 0 sudah submit</h2>
     <ul class="player-list" id="game-player-list"></ul>
 
     <div id="mc-correct-wrap" style="display:none;">
-      <p class="hint">Pilih jawaban yang benar lalu klik Reveal:</p>
-      <div class="answer-grid" id="mc-correct-buttons"></div>
+      <div id="mc-correct-buttons"></div>
     </div>
 
     <div id="short-judge-wrap" style="display:none;">
-      <p class="hint">Tandai jawaban tiap peserta benar / salah:</p>
       <div class="short-answer-list" id="short-answer-list"></div>
     </div>
 
@@ -68,6 +71,7 @@
 <div id="screen-song" class="screen">
   <div class="card">
     <h1>🎵 Tebak Lagu</h1>
+    <p class="hint" id="song-host-text"></p>
     <audio id="song-audio" preload="auto"></audio>
     <h2 id="song-tier-label">Belum diputar</h2>
     <div class="answer-grid" id="song-tier-buttons"></div>
@@ -82,6 +86,7 @@
 <div id="screen-wager-collect" class="screen">
   <div class="card">
     <h1>🎲 Ronde Taruhan Akhir</h1>
+    <p class="hint" id="wager-host-text"></p>
     <h2 id="wager-collect-count">0 / 0 sudah pasang taruhan</h2>
     <ul class="player-list" id="wager-collect-list"></ul>
     <button class="btn-primary" id="btn-proceed-wager">Lanjut ke Pertanyaan</button>

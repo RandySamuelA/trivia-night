@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 240" width="380" height="240">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="35%" stop-color="#E5A912"/>
+      <stop offset="70%" stop-color="#B8820B"/>
+      <stop offset="100%" stop-color="#FCD24A"/>
+    </linearGradient>
+    <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#C0C0C0"/>
+      <stop offset="100%" stop-color="#808080"/>
+    </linearGradient>
+  </defs>
+  <rect width="380" height="240" fill="#14171d" rx="16"/>
+  <!-- Chevrolet Bowtie Silhouette without text -->
+  <g transform="translate(190, 120)">
+    <!-- Outer silver bevel -->
+    <path d="M -155,-35 L -60,-35 L -60,-75 L 60,-75 L 60,-35 L 155,-35 L 135,35 L 60,35 L 60,75 L -60,75 L -60,35 L -135,35 Z" fill="url(#silverGrad)"/>
+    <!-- Inner gold body -->
+    <path d="M -145,-27 L -52,-27 L -52,-67 L 52,-67 L 52,-27 L 145,-27 L 127,27 L 52,27 L 52,67 L -52,67 L -52,27 L -127,27 Z" fill="url(#goldGrad)"/>
+    <!-- Pattern texture lines -->
+    <line x1="-120" y1="0" x2="120" y2="0" stroke="#9A6B00" stroke-width="2" opacity="0.6"/>
+  </g>
+</svg>
