@@ -83,11 +83,52 @@ function getLanIp() {
   return 'localhost';
 }
 
+// Helper to check if a question is Tebak Gaya
+function isTebakGaya(q) {
+  if (!q) return false;
+  return q.type === 'tebak_gaya' || (q.label && q.label.toLowerCase().includes('tebak gaya') && q.type === 'short_answer');
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Helper to check if a song guess answer matches the question's correctAnswer
+function isSongAnswerCorrect(playerAnswer, correctAnswer) {
+  if (!playerAnswer || !correctAnswer) return false;
+  const normP = normalizeAnswer(playerAnswer);
+  const normC = normalizeAnswer(correctAnswer);
+  if (!normP || !normC) return false;
+  if (normP === normC) return true;
+
+  // If correctAnswer is "Title - Artist" and player answered "Title"
+  const cParts = correctAnswer.split(' - ');
+  if (cParts.length >= 2) {
+    const titleOnly = normalizeAnswer(cParts[0]);
+    if (normP === titleOnly) return true;
+  }
+  // If player answered "Title - Artist" and correctAnswer is "Title"
+  const pParts = playerAnswer.split(' - ');
+  if (pParts.length >= 2) {
+    const pTitleOnly = normalizeAnswer(pParts[0]);
+    if (pTitleOnly === normC) return true;
+  }
+  return false;
+}
+
 // Full, host-only view of every player - includes their live answer text so
 // the host can see, in real time, exactly what each player has typed/picked
 // for the current question, across every question type - plus their
 // connection status so the host knows if someone's phone dropped.
 function publicPlayerList(room) {
+  const q = room.currentIndex >= 0 ? currentQuestion(room) : null;
+  const isTG = isTebakGaya(q) && ['question', 'reveal'].includes(room.state);
+  const isSong = q && q.type === 'song_guess';
   return Array.from(room.players.entries()).map(([id, p]) => ({
     id,
     name: p.name,
@@ -95,6 +136,8 @@ function publicPlayerList(room) {
     submitted: p.answer !== null,
     answer: p.answer,
     connected: p.connected !== false,
+    isPerformer: isTG && id === room.currentPerformerId,
+    isSongCorrect: isSong && p.answer !== null ? isSongAnswerCorrect(p.answer, q.correctAnswer) : null,
   }));
 }
 
@@ -151,6 +194,7 @@ function questionForPlayer(q, room) {
 // Used by both host:start-game and host:next-question.
 function advanceToCurrentQuestion(room) {
   const q = currentQuestion(room);
+  room.currentPerformerId = null;
 
   for (const p of room.players.values()) {
     p.answer = null;
@@ -159,6 +203,9 @@ function advanceToCurrentQuestion(room) {
     p.wager = null;
     p.wagerWin = null;
     p.songTier = null;
+    p.isPerformer = false;
+    p.actorPointsEarned = 0;
+    p.correctGuessCount = 0;
   }
 
   if (q.type === 'wager') {
@@ -186,8 +233,76 @@ function advanceToCurrentQuestion(room) {
       number: room.currentIndex + 1,
       total: room.questions.length,
       audioFile: q.audioFile,
+      correctAnswer: q.correctAnswer || '',
       tierPoints: getTierPoints(q),
       submittedCount: 0,
+      totalPlayers: room.players.size,
+      players: publicPlayerList(room),
+    });
+  } else if (isTebakGaya(q)) {
+    room.state = 'question';
+
+    // Prioritize fair rotation among all active players, reshuffle once exhausted
+    const allPlayerIds = Array.from(room.players.keys());
+    const activePlayerIds = allPlayerIds.filter((id) => {
+      const pl = room.players.get(id);
+      return pl && pl.connected !== false;
+    });
+    const poolIds = activePlayerIds.length > 0 ? activePlayerIds : allPlayerIds;
+
+    room.tebakGayaQueue = (room.tebakGayaQueue || []).filter((id) => poolIds.includes(id));
+    if (room.tebakGayaQueue.length === 0 && poolIds.length > 0) {
+      room.tebakGayaQueue = shuffleArray(poolIds);
+    }
+
+    const performerId = room.tebakGayaQueue.length > 0 ? room.tebakGayaQueue.shift() : null;
+    room.currentPerformerId = performerId;
+
+    const performer = performerId ? room.players.get(performerId) : null;
+    if (performer) performer.isPerformer = true;
+    const performerName = performer ? performer.name : 'Peraga';
+
+    // Send to performer
+    if (performerId) {
+      io.to(performerId).emit('question:show', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        type: 'tebak_gaya',
+        isPerformer: true,
+        performerName,
+        promptToAct: q.correctAnswer,
+        text: q.text || 'Giliranmu memperagakan gaya!',
+        points: q.points || 40,
+        actorPointPerCorrect: 20,
+      });
+    }
+
+    // Send to guessers
+    for (const [id, p] of room.players.entries()) {
+      if (id === performerId) continue;
+      io.to(id).emit('question:show', {
+        number: room.currentIndex + 1,
+        total: room.questions.length,
+        type: 'tebak_gaya',
+        isPerformer: false,
+        performerName,
+        text: q.text || `Tebak gaya yang diperagakan oleh ${performerName}!`,
+        points: q.points || 40,
+      });
+    }
+
+    io.to(room.hostSocketId).emit('host:question-live', {
+      number: room.currentIndex + 1,
+      total: room.questions.length,
+      question: {
+        ...q,
+        type: 'tebak_gaya',
+        performerId,
+        performerName,
+        options: [],
+      },
+      submittedCount: 0,
+      totalGuessers: Math.max(0, room.players.size - (performerId ? 1 : 0)),
       totalPlayers: room.players.size,
       players: publicPlayerList(room),
     });
@@ -226,11 +341,40 @@ function sendCurrentPhaseTo(socket, room, player) {
       socket.emit('rejoin:show-waiting');
       break;
     case 'question':
-      socket.emit('question:show', {
-        number: room.currentIndex + 1,
-        total: room.questions.length,
-        ...questionForPlayer(q, room),
-      });
+      if (isTebakGaya(q)) {
+        const isPerformer = player.id === room.currentPerformerId;
+        const performer = room.players.get(room.currentPerformerId);
+        const performerName = performer ? performer.name : 'Peraga';
+        if (isPerformer) {
+          socket.emit('question:show', {
+            number: room.currentIndex + 1,
+            total: room.questions.length,
+            type: 'tebak_gaya',
+            isPerformer: true,
+            performerName,
+            promptToAct: q.correctAnswer,
+            text: q.text || 'Giliranmu memperagakan gaya!',
+            points: q.points || 40,
+            actorPointPerCorrect: 20,
+          });
+        } else {
+          socket.emit('question:show', {
+            number: room.currentIndex + 1,
+            total: room.questions.length,
+            type: 'tebak_gaya',
+            isPerformer: false,
+            performerName,
+            text: q.text || `Tebak gaya yang diperagakan oleh ${performerName}!`,
+            points: q.points || 40,
+          });
+        }
+      } else {
+        socket.emit('question:show', {
+          number: room.currentIndex + 1,
+          total: room.questions.length,
+          ...questionForPlayer(q, room),
+        });
+      }
       break;
     case 'wager-collect':
       socket.emit('wager:collect-start', { yourScore: player.score, text: q.text });
@@ -318,6 +462,8 @@ io.on('connection', (socket) => {
       questions: pack.questions,
       currentIndex: -1,
       songTier: 0,
+      tebakGayaQueue: [],
+      currentPerformerId: null,
       players: new Map(),
     };
     rooms[code] = room;
@@ -370,12 +516,13 @@ io.on('connection', (socket) => {
     if (q.type === 'wager' || q.type === 'song_guess') return; // these use their own finalize events
     room.state = 'reveal';
 
+    const isTG = isTebakGaya(q);
     // If the question pack already has a preset correctAnswer (multiple_choice
-    // / true_false), use that automatically - the host doesn't have to pick
+    // / true_false / tebak_gaya), use that automatically - the host doesn't have to pick
     // it manually. Falls back to whatever the host selected on the dashboard
     // for older/custom questions that don't have a preset key.
     const hasPresetKey = q.correctAnswer !== undefined && q.correctAnswer !== null && q.correctAnswer !== '';
-    const finalCorrectAnswer = q.type === 'short_answer'
+    const finalCorrectAnswer = (q.type === 'short_answer' || isTG)
       ? q.correctAnswer
       : (hasPresetKey ? q.correctAnswer : correctAnswer);
 
@@ -401,6 +548,32 @@ io.on('connection', (socket) => {
         p.correct = null;
         p.score += matches * q.points;
       }
+    } else if (isTG) {
+      const key = normalizeAnswer(finalCorrectAnswer);
+      let correctGuessCount = 0;
+      let totalGuessers = 0;
+      for (const [id, p] of room.players.entries()) {
+        if (id === room.currentPerformerId) {
+          p.isPerformer = true;
+          p.correct = null;
+          p.answer = null;
+          continue;
+        }
+        totalGuessers++;
+        const isCorrect = p.answer !== null && normalizeAnswer(p.answer) === key;
+        p.correct = isCorrect;
+        if (isCorrect) {
+          p.score += (q.points || 40);
+          correctGuessCount++;
+        }
+      }
+      const performer = room.currentPerformerId ? room.players.get(room.currentPerformerId) : null;
+      const performerEarned = correctGuessCount * 20; // 20 points per correct guesser
+      if (performer) {
+        performer.score += performerEarned;
+        performer.actorPointsEarned = performerEarned;
+        performer.correctGuessCount = correctGuessCount;
+      }
     } else if (q.type === 'short_answer') {
       const key = normalizeAnswer(finalCorrectAnswer);
       for (const p of room.players.values()) {
@@ -420,15 +593,42 @@ io.on('connection', (socket) => {
     const isLast = room.currentIndex >= room.questions.length - 1;
 
     // Send each player their own result
+    const performer = room.currentPerformerId ? room.players.get(room.currentPerformerId) : null;
     for (const [id, p] of room.players.entries()) {
-      io.to(id).emit('question:reveal', {
-        correctAnswer: q.type === 'survey' ? null : finalCorrectAnswer,
-        yourAnswer: p.answer,
-        yourResult: q.type === 'survey' ? null : p.correct,
-        yourMatches: q.type === 'survey' ? p.matches : undefined,
-        yourScore: p.score,
-        leaderboard: board,
-      });
+      if (isTG) {
+        if (id === room.currentPerformerId) {
+          io.to(id).emit('question:reveal', {
+            isTebakGaya: true,
+            isPerformer: true,
+            correctAnswer: finalCorrectAnswer,
+            correctGuessCount: p.correctGuessCount || 0,
+            pointsEarned: p.actorPointsEarned || 0,
+            yourScore: p.score,
+            leaderboard: board,
+          });
+        } else {
+          io.to(id).emit('question:reveal', {
+            isTebakGaya: true,
+            isPerformer: false,
+            performerName: performer ? performer.name : 'Peraga',
+            correctAnswer: finalCorrectAnswer,
+            yourAnswer: p.answer,
+            yourResult: p.correct,
+            pointsEarned: p.correct ? (q.points || 40) : 0,
+            yourScore: p.score,
+            leaderboard: board,
+          });
+        }
+      } else {
+        io.to(id).emit('question:reveal', {
+          correctAnswer: q.type === 'survey' ? null : finalCorrectAnswer,
+          yourAnswer: p.answer,
+          yourResult: q.type === 'survey' ? null : p.correct,
+          yourMatches: q.type === 'survey' ? p.matches : undefined,
+          yourScore: p.score,
+          leaderboard: board,
+        });
+      }
     }
     io.to(room.hostSocketId).emit('host:revealed', {
       leaderboard: board,
@@ -546,13 +746,14 @@ io.on('connection', (socket) => {
     const submittedCount = Array.from(room.players.values()).filter((p) => p.answer !== null).length;
     io.to(room.hostSocketId).emit('host:song-tier-update', {
       tier: t,
+      correctAnswer: q.correctAnswer || '',
       submittedCount,
       totalPlayers: room.players.size,
       players: publicPlayerList(room),
     });
   });
 
-  socket.on('host:finalize-song', ({ correctIds }) => {
+  socket.on('host:finalize-song', ({ correctIds } = {}) => {
     const room = rooms[socket.data.roomCode];
     if (!room || room.hostSocketId !== socket.id) return;
     const q = currentQuestion(room);
@@ -560,7 +761,7 @@ io.on('connection', (socket) => {
     room.state = 'reveal';
 
     const tierPoints = getTierPoints(q);
-    const correctSet = new Set(correctIds || []);
+    const correctSet = correctIds ? new Set(correctIds) : null;
     const earned = {};
 
     for (const [id, p] of room.players.entries()) {
@@ -569,7 +770,9 @@ io.on('connection', (socket) => {
         earned[id] = 0;
         continue;
       }
-      const isCorrect = correctSet.has(id);
+      const isCorrect = correctSet !== null
+        ? correctSet.has(id)
+        : isSongAnswerCorrect(p.answer, q.correctAnswer);
       p.correct = isCorrect;
       const tier = p.songTier || 5;
       const pts = isCorrect ? (tierPoints[tier - 1] || 0) : 0;
@@ -588,12 +791,14 @@ io.on('connection', (socket) => {
         yourTier: p.songTier,
         yourPointsEarned: earned[id],
         yourScore: p.score,
+        correctAnswer: q.correctAnswer || '',
         leaderboard: board,
       });
     }
     io.to(room.hostSocketId).emit('host:revealed', {
       leaderboard: board,
       isLast,
+      correctAnswer: q.correctAnswer || '',
       players: publicPlayerList(room),
     });
   });
@@ -678,14 +883,21 @@ io.on('connection', (socket) => {
     if (!room || !['question', 'wager-question', 'song-tier'].includes(room.state)) {
       return cb && cb({ ok: false });
     }
+    const q = currentQuestion(room);
+    if (isTebakGaya(q) && socket.data.playerId === room.currentPerformerId) {
+      return cb && cb({ ok: false, error: 'Sebagai peraga, kamu tidak bisa menebak.' });
+    }
     const p = room.players.get(socket.data.playerId);
     if (!p || p.answer !== null) return cb && cb({ ok: false });
     p.answer = answer;
     if (room.state === 'song-tier') p.songTier = room.songTier;
     cb && cb({ ok: true });
 
-    const submittedCount = Array.from(room.players.values()).filter((pl) => pl.answer !== null).length;
-    const q = currentQuestion(room);
+    const qIsTG = isTebakGaya(q);
+    const totalGuessers = qIsTG ? Math.max(0, room.players.size - (room.currentPerformerId ? 1 : 0)) : room.players.size;
+    const submittedCount = Array.from(room.players.entries())
+      .filter(([id, pl]) => (!qIsTG || id !== room.currentPerformerId) && pl.answer !== null)
+      .length;
 
     if (room.state === 'wager-question') {
       io.to(room.hostSocketId).emit('host:wager-question-update', {
@@ -701,6 +913,7 @@ io.on('connection', (socket) => {
     if (room.state === 'song-tier') {
       io.to(room.hostSocketId).emit('host:song-tier-update', {
         tier: room.songTier,
+        correctAnswer: q.correctAnswer || '',
         submittedCount,
         totalPlayers: room.players.size,
         players: publicPlayerList(room),
@@ -710,12 +923,13 @@ io.on('connection', (socket) => {
 
     const payload = {
       submittedCount,
+      totalGuessers,
       totalPlayers: room.players.size,
       players: publicPlayerList(room),
     };
-    if (q && q.type === 'short_answer') {
+    if (q && (q.type === 'short_answer' || qIsTG)) {
       payload.shortAnswers = Array.from(room.players.entries())
-        .filter(([, pl]) => pl.answer !== null)
+        .filter(([id, pl]) => (!qIsTG || id !== room.currentPerformerId) && pl.answer !== null)
         .map(([id, pl]) => ({ id, name: pl.name, answerText: pl.answer }));
     }
     io.to(room.hostSocketId).emit('host:submission-update', payload);

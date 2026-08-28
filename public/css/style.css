@@ -91,6 +91,7 @@ ul.player-list li {
 }
 ul.player-list li .badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 8px; background: #2a2f3a; color: var(--muted); }
 ul.player-list li .badge.done { background: var(--good); color: #002914; }
+ul.player-list li .badge.performer { background: #e59a00; color: #1a1200; font-weight: 700; }
 
 .pack-list { text-align: left; margin: 14px 0; }
 .pack-list button { text-align: left; }
@@ -151,5 +152,261 @@ ul.player-list li .badge.done { background: var(--good); color: #002914; }
   border-radius: 8px;
   object-fit: contain;
   display: block;
+}
+
+/* Tebak Gaya performer styles */
+.performer-card {
+  background: linear-gradient(145deg, #241d10 0%, #3a2b13 100%);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  margin: 16px 0;
+  box-shadow: 0 0 30px rgba(255, 176, 32, 0.25);
+  text-align: center;
+  animation: glowPulse 2.5s infinite ease-in-out;
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 176, 32, 0.2); }
+  50% { box-shadow: 0 0 35px rgba(255, 176, 32, 0.45); }
+}
+.performer-badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #1a1200;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 4px 14px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.prompt-to-act {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 14px rgba(255, 176, 32, 0.6);
+  margin: 12px 0;
+  line-height: 1.3;
+  word-break: break-word;
+}
+.performer-hint {
+  font-size: 0.9rem;
+  color: #ffd88b;
+  margin: 12px 0 0;
+  line-height: 1.4;
+}
+.performer-banner {
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.host-performer-box {
+  background: rgba(255, 176, 32, 0.12);
+  border: 1px solid rgba(255, 176, 32, 0.35);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+/* Song Autocomplete Component Styles */
+.song-autocomplete-wrap {
+  position: relative;
+  width: 100%;
+  margin: 14px 0;
+  text-align: left;
+}
+
+.song-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.song-input-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 1.1rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+#song-search-input {
+  width: 100%;
+  padding: 14px 44px 14px 42px;
+  border-radius: 12px;
+  border: 1px solid #2c313c;
+  background: #12141a;
+  color: var(--text);
+  font-size: 1rem;
+  margin-bottom: 0;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#song-search-input:focus {
+  outline: none;
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.2);
+}
+
+.song-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  background: #2a2f3a;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+}
+
+.song-clear-btn:hover {
+  background: #3c4353;
+  color: #ffffff;
+}
+
+.song-dropdown-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #181b22;
+  border: 1px solid #2e3442;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  padding: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.song-option {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  margin-bottom: 2px;
+}
+
+.song-option:last-child {
+  margin-bottom: 0;
+}
+
+.song-option:hover,
+.song-option.highlighted {
+  background: #272d3b;
+}
+
+.song-option.no-match {
+  color: var(--muted);
+  text-align: center;
+  padding: 16px 12px;
+  cursor: default;
+}
+
+.song-opt-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.song-opt-artist {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.song-mark {
+  background: rgba(255, 176, 32, 0.35);
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 700;
+}
+
+/* Selected Song Preview Card */
+.song-selected-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(255, 176, 32, 0.15) 0%, rgba(79, 140, 255, 0.15) 100%);
+  border: 1.5px solid var(--accent);
+  border-radius: 12px;
+  padding: 12px 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.song-selected-icon {
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.song-selected-info {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+}
+
+.song-selected-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  word-break: break-word;
+}
+
+.song-selected-sub {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.song-unselect-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.song-unselect-btn:hover {
+  background: rgba(255, 93, 93, 0.25);
+  color: var(--bad);
 }
 

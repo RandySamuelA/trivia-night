@@ -109,6 +109,10 @@ Jenis (`type`) yang didukung:
 - `survey` — opsi vote **otomatis diambil dari nama peserta yang sedang join** (kolom
   `options` di JSON diabaikan, boleh dikosongkan `[]`). Setiap peserta yang vote-nya sama
   dengan peserta lain dapat poin sebesar `points` **per kecocokan**.
+- `tebak_gaya` — Ronde Tebak Gaya (Charades). Sistem secara adil menggilirkan setiap pemain
+  menjadi **peraga gaya** (semua mendapat giliran 1x dulu sebelum diacak ulang). Peraga melihat
+  kata gaya di HP-nya dan tidak bisa input tebakan, tapi mendapat **+20 poin per orang yang
+  menjawab benar**. Penebak yang benar mendapat poin soal seperti biasa.
 - `song_guess` — Ronde Tebak Lagu. Lihat bagian 7 di bawah.
 - `wager` — Ronde Taruhan Akhir. Lihat bagian 6 di bawah. **Wajib diletakkan sebagai soal
   terakhir** di paket.

@@ -44,8 +44,40 @@
     <h1>🎵 Tebak Lagunya!</h1>
     <p class="hint" id="song-answer-text"></p>
     <p class="hint" id="song-tier-info"></p>
-    <input type="text" id="song-answer-input" placeholder="Judul lagu / penyanyi..." maxlength="80" />
-    <button class="btn-primary" id="btn-submit-song">Submit</button>
+
+    <div class="song-autocomplete-wrap">
+      <div class="song-input-box">
+        <span class="song-input-icon">🔍</span>
+        <input
+          type="text"
+          id="song-search-input"
+          placeholder="Cari judul lagu / artis..."
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+          maxlength="80"
+        />
+        <button type="button" id="btn-clear-song-search" class="song-clear-btn" style="display:none;" aria-label="Hapus">&times;</button>
+      </div>
+
+      <!-- Live Dropdown list -->
+      <div id="song-dropdown-list" class="song-dropdown-list" style="display:none;"></div>
+
+      <!-- Selected song indicator -->
+      <div id="song-selected-preview" class="song-selected-preview" style="display:none;">
+        <span class="song-selected-icon">🎵</span>
+        <div class="song-selected-info">
+          <div class="song-selected-title" id="song-selected-display"></div>
+          <div class="song-selected-sub">Pilihan lagu kamu</div>
+        </div>
+        <button type="button" id="btn-unselect-song" class="song-unselect-btn" title="Ganti lagu">&times;</button>
+      </div>
+    </div>
+
+    <!-- Hidden input to store selected value -->
+    <input type="hidden" id="song-answer-input" />
+
+    <button class="btn-primary" id="btn-submit-song" disabled style="margin-top:12px;">Submit Jawaban</button>
   </div>
 </div>
 
@@ -71,6 +103,17 @@
     <h1 id="q-title">Pilih jawabanmu</h1>
     <p class="hint" id="q-ppt-hint">Lihat soal di layar TV / laptop host</p>
     <div class="q-image-wrap" id="q-image-wrap" style="display:none;"><img id="q-image" src="" alt="Gambar Soal" /></div>
+    <div id="q-performer-banner" class="performer-banner" style="display:none;"></div>
+    <div id="q-performer-wrap" class="performer-card" style="display:none;">
+      <div class="performer-badge">🎭 Giliran Kamu Jadi Peraga!</div>
+      <p class="hint" style="margin:0;color:#ffd88b;">Gaya yang harus kamu peragakan:</p>
+      <div class="prompt-to-act" id="performer-prompt-text">-</div>
+      <p class="performer-hint">
+        🤫 <b>Jangan bersuara atau menyebutkan kata!</b><br>
+        Peragakan dengan gerakan tubuh ke teman-teman.<br>
+        Kamu akan mendapat <b>+20 poin</b> untuk setiap teman yang menebak benar!
+      </p>
+    </div>
     <div id="q-mc-wrap" class="answer-grid" style="display:none;"></div>
     <div id="q-text-wrap" style="display:none;">
       <input type="text" id="q-text-input" placeholder="Ketik jawabanmu..." maxlength="80" />
@@ -82,8 +125,10 @@
 <!-- SUBMITTED SCREEN -->
 <div id="screen-submitted" class="screen">
   <div class="card">
-    <h1>Answer Submitted ✅</h1>
-    <p class="status-msg pulse">Waiting...</p>
+    <h1>Jawaban Terkirim!</h1>
+    <p class="hint">Jawaban kamu:</p>
+    <p id="submitted-answer" style="font-weight:700;font-size:1.2rem;color:var(--accent);"></p>
+    <p class="status-msg pulse">Menunggu pemain lain...</p>
   </div>
 </div>
 
@@ -113,6 +158,7 @@
 <audio id="player-song-audio" preload="auto"></audio>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="songs.js"></script>
 <script src="player.js"></script>
 </body>
 </html>

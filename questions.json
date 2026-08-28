@@ -117,6 +117,7 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Take A Chance With Me.mp3",
+    "correctAnswer": "Take A Chance With Me - NIKI",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
@@ -124,6 +125,7 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "505.mp3",
+    "correctAnswer": "505 - Arctic Monkeys",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
@@ -131,6 +133,7 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Best Song Ever.mp3",
+    "correctAnswer": "Best Song Ever - One Direction",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
@@ -138,6 +141,7 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "Golden Hour.mp3",
+    "correctAnswer": "Golden Hour - JVKE",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
@@ -145,6 +149,7 @@
     "label": "Tebak Lagu",
     "type": "song_guess",
     "audioFile": "A Whole New World.mp3",
+    "correctAnswer": "A Whole New World - Mena Massoud, Naomi Scott",
     "tierPoints": [50, 40, 30, 20, 10]
   },
   {
@@ -185,7 +190,7 @@
   {
     "id": 26,
     "label": "Tebak Gaya 1",
-    "type": "short_answer",
+    "type": "tebak_gaya",
     "points": 40,
     "options": [],
     "correctAnswer": "Monyet Naik Motor"
@@ -193,7 +198,7 @@
   {
     "id": 27,
     "label": "Tebak Gaya 2",
-    "type": "short_answer",
+    "type": "tebak_gaya",
     "points": 40,
     "options": [],
     "correctAnswer": "Dompet Hilang"
@@ -201,15 +206,15 @@
   {
     "id": 28,
     "label": "Tebak Gaya 3",
-    "type": "short_answer",
+    "type": "tebak_gaya",
     "points": 40,
     "options": [],
     "correctAnswer": "Gajah Terbang"
   },
   {
     "id": 29,
-    "label": "Tebak Gaya 1",
-    "type": "short_answer",
+    "label": "Tebak Gaya 4",
+    "type": "tebak_gaya",
     "points": 40,
     "options": [],
     "correctAnswer": "Ayam Bertelur"

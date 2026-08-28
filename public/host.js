@@ -24,6 +24,7 @@ const typeLabels = {
   true_false: 'True / False',
   short_answer: 'Short Answer',
   survey: 'Survey',
+  tebak_gaya: 'Tebak Gaya',
 };
 
 // ---------- PACK SELECTION ----------
@@ -117,15 +118,34 @@ socket.on('host:question-live', (data) => {
       imgEl.src = '';
     }
   }
-  document.getElementById('game-submit-count').textContent =
-    `${data.submittedCount} / ${data.totalPlayers} sudah submit`;
+
+  const tgWrap = document.getElementById('tebak-gaya-host-wrap');
+  if (currentQuestion.type === 'tebak_gaya') {
+    const totalGuessers = data.totalGuessers !== undefined ? data.totalGuessers : Math.max(0, data.totalPlayers - 1);
+    document.getElementById('game-submit-count').textContent =
+      `${data.submittedCount} / ${totalGuessers} penebak sudah submit`;
+    if (tgWrap) {
+      tgWrap.style.display = 'block';
+      document.getElementById('host-performer-name').textContent = currentQuestion.performerName || '-';
+    }
+  } else {
+    document.getElementById('game-submit-count').textContent =
+      `${data.submittedCount} / ${data.totalPlayers} sudah submit`;
+    if (tgWrap) tgWrap.style.display = 'none';
+  }
+
   updateGamePlayerList(data.players || []);
 
   document.getElementById('mc-correct-wrap').style.display = 'none';
   document.getElementById('short-judge-wrap').style.display = 'none';
   document.getElementById('survey-wrap').style.display = 'none';
 
-  if (currentQuestion.type === 'short_answer') {
+  if (currentQuestion.type === 'tebak_gaya') {
+    document.getElementById('short-judge-wrap').style.display = 'block';
+    document.getElementById('short-answer-list').innerHTML =
+      `<p class="hint">Gaya yang harus diperagakan: <b>${escapeHtml(currentQuestion.correctAnswer || '(belum diisi)')}</b><br>` +
+      `Penilaian otomatis (huruf besar/kecil &amp; tanda baca diabaikan).</p>`;
+  } else if (currentQuestion.type === 'short_answer') {
     document.getElementById('short-judge-wrap').style.display = 'block';
     document.getElementById('short-answer-list').innerHTML =
       `<p class="hint">Kunci jawaban: <b>${escapeHtml(currentQuestion.correctAnswer || '(belum diisi)')}</b><br>` +
@@ -164,10 +184,16 @@ socket.on('host:question-live', (data) => {
 });
 
 socket.on('host:submission-update', (data) => {
-  document.getElementById('game-submit-count').textContent =
-    `${data.submittedCount} / ${data.totalPlayers} sudah submit`;
+  if (currentQuestion && currentQuestion.type === 'tebak_gaya') {
+    const totalGuessers = data.totalGuessers !== undefined ? data.totalGuessers : Math.max(0, data.totalPlayers - 1);
+    document.getElementById('game-submit-count').textContent =
+      `${data.submittedCount} / ${totalGuessers} penebak sudah submit`;
+  } else {
+    document.getElementById('game-submit-count').textContent =
+      `${data.submittedCount} / ${data.totalPlayers} sudah submit`;
+  }
   updateGamePlayerList(data.players);
-  if (currentQuestion && currentQuestion.type === 'short_answer' && data.shortAnswers) {
+  if (currentQuestion && (currentQuestion.type === 'short_answer' || currentQuestion.type === 'tebak_gaya') && data.shortAnswers) {
     renderShortAnswerList(data.shortAnswers);
   }
 });
@@ -179,8 +205,16 @@ function updateGamePlayerList(players) {
   players.forEach((p) => {
     const li = document.createElement('li');
     const discBadge = p.connected === false ? ' 🔌' : '';
-    const badgeText = p.submitted ? `✓ ${escapeHtml(String(p.answer))}` : 'menunggu';
-    li.innerHTML = `<span>${escapeHtml(p.name)}${discBadge}</span><span class="badge ${p.submitted ? 'done' : ''}">${badgeText}</span>`;
+    let badgeText = 'menunggu';
+    let badgeClass = '';
+    if (p.isPerformer) {
+      badgeText = '🎭 Peraga';
+      badgeClass = 'performer';
+    } else if (p.submitted) {
+      badgeText = `✓ ${escapeHtml(String(p.answer))}`;
+      badgeClass = 'done';
+    }
+    li.innerHTML = `<span>${escapeHtml(p.name)}${discBadge}</span><span class="badge ${badgeClass}">${badgeText}</span>`;
     list.appendChild(li);
   });
 }
@@ -258,11 +292,18 @@ let songCurrentTier = 0;
 let currentSongHostText = '';
 
 socket.on('host:song-ready', (data) => {
-  currentQuestion = { type: 'song_guess' };
+  currentQuestion = { type: 'song_guess', correctAnswer: data.correctAnswer || '' };
   songTierPoints = data.tierPoints || songTierPoints;
   songCurrentTier = 0;
   currentSongHostText = data.text || '';
   document.getElementById('song-host-text').textContent = currentSongHostText;
+
+  const keyBox = document.getElementById('song-correct-key-box');
+  if (keyBox) {
+    keyBox.innerHTML = currentQuestion.correctAnswer
+      ? `🎵 Kunci Jawaban: <b>${escapeHtml(currentQuestion.correctAnswer)}</b>`
+      : '<em>(Belum ada kunci jawaban)</em>';
+  }
 
   const audio = document.getElementById('song-audio');
   audio.onerror = () => {
@@ -334,12 +375,18 @@ function playSongTier(tier) {
 
 socket.on('host:song-tier-update', (data) => {
   songCurrentTier = data.tier;
+  if (data.correctAnswer) currentQuestion.correctAnswer = data.correctAnswer;
   document.getElementById('song-tier-label').textContent = `Tier saat ini: ${data.tier} detik (${songTierPoints[data.tier - 1]} poin)`;
   document.getElementById('song-submit-count').textContent = `${data.submittedCount} / ${data.totalPlayers} sudah menjawab`;
   renderSongTierButtons();
-  const checkedIds = new Set(
-    Array.from(document.querySelectorAll('#song-judge-list input[type=checkbox]:checked')).map((el) => el.dataset.id)
-  );
+
+  const userChecked = document.querySelectorAll('#song-judge-list input[type=checkbox]');
+  let checkedIds = null;
+  if (userChecked.length > 0) {
+    checkedIds = new Set(
+      Array.from(document.querySelectorAll('#song-judge-list input[type=checkbox]:checked')).map((el) => el.dataset.id)
+    );
+  }
   renderSongJudgeList(data.players, checkedIds);
 });
 
@@ -354,10 +401,33 @@ function renderSongJudgeList(players, checkedIds) {
     const row = document.createElement('div');
     row.className = 'short-answer-row';
     const answerLabel = p.submitted ? `"${escapeHtml(String(p.answer))}"` : '<em>belum menjawab</em>';
-    const isChecked = checkedIds && checkedIds.has(p.id);
+    
+    // Auto-check logic: If player answered correctly or checked in state
+    let isChecked = false;
+    if (checkedIds) {
+      // If we already had checked state, preserve checked state but default new correct ones to checked
+      isChecked = checkedIds.has(p.id) || (!checkedIds.has(p.id) && p.isSongCorrect === true && !row.dataset.interacted);
+    } else {
+      isChecked = p.isSongCorrect === true;
+    }
+
+    let statusBadge = '';
+    if (p.submitted) {
+      if (p.isSongCorrect === true) {
+        statusBadge = `<span class="badge done" style="font-size:0.75rem;padding:2px 6px;margin-left:6px;">✅ Auto Benar</span>`;
+      } else if (p.isSongCorrect === false) {
+        statusBadge = `<span class="badge" style="background:#ff5d5d;color:white;font-size:0.75rem;padding:2px 6px;margin-left:6px;">❌ Beda</span>`;
+      }
+    } else {
+      statusBadge = `<span class="badge" style="font-size:0.75rem;padding:2px 6px;margin-left:6px;">⏳ Menunggu</span>`;
+    }
+
     row.innerHTML = `
-      <span class="txt">${escapeHtml(p.name)} — ${answerLabel}</span>
-      <label style="display:flex;align-items:center;gap:4px;">
+      <span class="txt" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+        <span><b>${escapeHtml(p.name)}</b>: ${answerLabel}</span>
+        ${statusBadge}
+      </span>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;">
         <input type="checkbox" data-id="${p.id}" ${isChecked ? 'checked' : ''} ${p.submitted ? '' : 'disabled'} />
         Benar
       </label>

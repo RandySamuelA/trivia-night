@@ -57,6 +57,11 @@
       <div class="short-answer-list" id="short-answer-list"></div>
     </div>
 
+    <div id="tebak-gaya-host-wrap" style="display:none;" class="host-performer-box">
+      🎭 Peraga saat ini: <strong id="host-performer-name">-</strong>
+      <div class="hint" style="color:#ffd88b;margin-top:4px;">Peraga memperagakan gaya di depan teman-teman dan mendapat +20 poin per penebak benar.</div>
+    </div>
+
     <div id="survey-wrap" style="display:none;">
       <p class="hint">Survey (tanpa jawaban benar). Setiap peserta yang vote-nya sama<br>
       dengan peserta lain akan dapat poin per kecocokan.</p>
@@ -72,11 +77,12 @@
   <div class="card">
     <h1>🎵 Tebak Lagu</h1>
     <p class="hint" id="song-host-text"></p>
+    <div id="song-correct-key-box" class="host-performer-box" style="margin:10px 0;text-align:center;font-size:1.05rem;"></div>
     <audio id="song-audio" preload="auto"></audio>
     <h2 id="song-tier-label">Belum diputar</h2>
     <div class="answer-grid" id="song-tier-buttons"></div>
     <h2 id="song-submit-count" style="margin-top:18px;">0 / 0 sudah menjawab</h2>
-    <p class="hint">Centang siapa saja yang JAWABANNYA BENAR:</p>
+    <p class="hint">Penilaian otomatis berdasarkan kunci lagu (centang terisi otomatis):</p>
     <div class="short-answer-list" id="song-judge-list"></div>
     <button class="btn-good" id="btn-finalize-song">Reveal &amp; Hitung Skor</button>
   </div>

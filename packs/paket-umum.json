@@ -60,7 +60,8 @@
       "label": "Tebak Lagu",
       "type": "song_guess",
       "text": "Tebak judul atau penyanyi lagu ini!",
-      "audioFile": "song1.mp3",
+      "audioFile": "Take A Chance With Me.mp3",
+      "correctAnswer": "Take A Chance With Me - NIKI",
       "tierPoints": [50, 40, 30, 20, 10]
     },
     {
